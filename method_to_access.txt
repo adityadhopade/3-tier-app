@@ -393,5 +393,5 @@ Adding it up brings out 1 + 2 + 4 = 7(Max value it can obtain)
 
 git status --short // gives status befor staging
 
-git log --oneline // gets logs in singhle line
+git log --oneline // gets logs in single line
 ########################## End Day 10 [] #######################################################
