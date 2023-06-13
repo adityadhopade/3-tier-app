@@ -389,4 +389,9 @@ start from rightmost to the left
 Adding it up brings out 1 + 2 + 4 = 7(Max value it can obtain) 
 
 7 acts as netnum here
+
+
+git status --short // gives status befor staging
+
+git log --oneline // gets logs in singhle line
 ########################## End Day 10 [] #######################################################
