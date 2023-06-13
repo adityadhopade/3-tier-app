@@ -14,6 +14,5 @@ provider "aws" {
   assume_role {
     role_arn     = "arn:aws:iam::972348856143:role/stsassumerole"
     session_name = "stsrole"
-
   }
 }
