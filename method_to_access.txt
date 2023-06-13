@@ -1,0 +1,104 @@
+WE can save the credentials wioth the help of the 
+
+1. By putting out credentials directly in TF (Not recommneded)
+2. By adding the profile in the aws credentials (used widely)
+3. Adding details via Env variables (Mostly used in Pipelines Framework)
+
+    export AWS_ACCESS_KEY_ID = "your key"
+    export AWS_SECRET_ACCESS_KEY = "your secret access key"
+    Run terraform plan .. It must work
+
+4. By installing TF on instances we can assign a role to the ec2 instance so that we can use it more securely and then access directly (Widely used; Best practice; more secured)
+
+############    Day 6  USing STS  ################### 
+
+STS [Secure Token Service] in AWS ; It is used to generate a token for the short time. For Min time we can set ourselves; Max for 12 hours.
+It gives access key; secret key and Session Token generation is provided with the expiration date
+
+
+ Commands followed during the creation of Secure Token Service execution is as follows
+ 
+1. create a user "stsuser" with no permissions --> no policy attached --> add it to the aws credentials file with the same profile name 	 
+  aws configure --profile stsuser
+  cat ~/.aws/credentials 
+  aws s3 ls (Fail)
+  
+2. Create a role --> For aws account --> Admin Access(Highest Privileage) --> name as "stsassumerole"
+  aws s3 ls (Fail)
+
+3. Need to integrate the created User with the role
+
+a. On user End --> Permission --> Need to add a inline policy --> Using template for using the IAM ROle in the AWS CLI --> Change the arn with the arn of the role we need to assume. --> name it as "stsassumerolepolicy"
+
+b. On the Role End --> It needs to trust the user so refer to trust relationships --> Exactly the same as in the https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-role.html
+
+aws s3 ls (Fails) --> Its still assuming that we are executing it with the current user but we need to implement it via the role(that we recently created) --> Follow the command  
+
+a. aws sts assume-role --role-arn arn:aws:iam::972348856143:role/stsassumerole --role-session-name accesss3
+  
+b. aws sts get-caller-identity --> It shows out the current user in my case gives terraform user
+  
+To configure which profile to be used 
+  
+Just edit out the file using -->code ~/.aws/config
+Add a profile with the fields role_arn (arn of the role), source_profile(the credential for which we want to assume the role)
+  
+[profile sts]
+role_arn = <arn of the role>
+source_profile = <credential for which we want to assume role = stsuser in my case>  
+  
+For source profile credentails we can verify it via the --> cat ~/.aws/credentials
+  
+  
+then if everything is configured
+
+aws s3 ls --profile sts --> Lists out the s3 bucket lists
+
+This should work as it was working fine for some time now
+
+Try creating any new user--> add credentials in the aws credentails folder --> Do not give any permission to the user then ty accessing suing the command 
+
+aws s3 ls --profile new_user (It will not work)
+
+#########################  END Day 6 ####################################### 
+
+########################## Day 7 Creating VPC via Terraform [7 June 2023] ###############################################
+
+For multiple account the role is configured and centralized account where user is configured then how to configure it suing the Terraform
+
+just add the assume_role block in the provider.tf file
+
+assume_role {
+  role_arn = "your_arn"
+  session_name = "your seesion name" [It is similiar to as that of the [aws sts --role-arn <arn of the role to be assumed> --role-session-name <your session name>] Also remember the session maxes out at 12 hrs so need to create a new token after that]
+}
+
+How to actually create a VPC using the TF ?
+
+1.In VPC there are lots of fields known as Arguments which are needed to fill to host VPC {Some mandatory or Optional}
+
+2. In tf planning if we do not want hassle to cross check then give terraform plan --auto-approve
+
+3. For generating VPC we need the bare minimum as [cidr_block]  OR [ipv4_ipam_pool_id] (Which inturn requires the ipv4_netmask_length to calulcate the cidr range)
+
+While creating a resource block 
+
+resource "aws_vpc" "main" {}
+
+aws_vpc -- represents what type of resource is expected by the provider to create.
+main -- represents the name of that resource but standards should be followed like giving it names like this, main, my_vpc, main_vpc
+
+To create vpc we need to provide the cidr ranges which can be easily get by --> search  private ip ranges and based on the requirement add a class range
+
+to save a plan in teraform just add the --> terraform plan -out sample_name.out (File will be generated with such name)
+
+to execute that just use --> terraform apply "sample_name.out" (It would create the vpc resource in aws console we caqn verify)
+
+########################### End Day 7 [7 June 2023] #########################################
+
+########################### End Day 8 [8 June 2023] #########################################
+
+
+
+
+########################### End Day 8 [8 June 2023] #########################################
