@@ -365,7 +365,7 @@ locals {
 
 The cidrsubnet(prefix, newbits, netnum) Syntax
 
-prefix: cidr_range of vpc
+prefix: it gives the cidr_range of vpc
 newbits: how many subnets we need to create let us say 6 i.e. it can be satisfied with the help of 2^3 = 8 so 3 will act as the newbits
 netnum(Important): 
 
@@ -378,7 +378,6 @@ eg 10.0.0.0/24 for creating 6 subnets --> 2^3 ie 3 will be new bits
 8 bits remains for the host -- out of which 3 we are adding to the host (As a part of adding the subnet)
 
 Only 5 bits are available to the host now
-
 
 So now 3 bits can be raging from 000 to 111
 start from rightmost to the left
@@ -395,3 +394,111 @@ git status --short // gives status befor staging
 
 git log --oneline // gets logs in single line
 ########################## End Day 10 [] #######################################################
+
+########################## Day 11 - cidrsubnet function in TF #################################
+
+cidrsubnet(prefix, newbits, netnum)
+
+calculating the cidr subnet values
+prefix is nothing but the vpc_cidr range so we can obtain it like var.cidr_for_vpc (From the variables.tf file) OR we could also use the aws_vpc.this.cidr_block (valid way)
+
+now we need to form a logic to get the newbits(how many subnets we need to create let us say 6 i.e. it can be satisfied with the help of 2^3 = 8 ;So 3 will act as the newbits)
+logic : we can do that using length function of TF --> length(data.aws_availability_zones.this.names)
+
+For the newbits => If subnets 3 ; It is satisfied by 2^2 = 4 ; 2 will be the newbits
+                   If subnets 6 ; It will be satified by 2^3= 8 ; 3 will be the newbits
+
+
+length(data.aws_availability_zones.this.names) > 3 ? 4 : 2 (USing ternary operator)
+
+
+eg if cidr= 10.0.0.0/24
+for 3 subnets => 2^2 = 4 staisfies; 2 newbits
+
+cidr will now be 10.0.0.0/26
+
+TASK: But we will not know the how many avaklibility zones would be there; but we need each AZ should contain a private subnet
+
+AZ will not be greater than 8 for now(Max to max in aws till now)
+
+if suppose there we have 6 AZ then in that case; as per our condition we require each AZ should contain each private subnet so we reuire 6 subnets
+
+length(data.aws_availability_zones.this.names) gives us 6
+
+Example: for 6 subnets how much the new bits are required ? Calculate
+
+6 => 2^ 3 = 8 ; 3 new bits will satisy our needs
+
+Earlier: length(data.aws_availability_zones.this.names) > 3 ? 4(Indicates true part) : 2 (Indicates false part)
+Changed: length(data.aws_availability_zones.this.names) > 4 ? 3(Required newbits) : 2
+         
+Decoding Logic   In our case for 6 subnets =>  6 > 4  its true so it will trigger true part i.e. 3
+As per our ternary condition we need to make some changes here like
+NOTE: It would work for the requirement form 5/6/7/8 subnets in total
+
+
+FOr netnum calculation
+
+eg 10.0.0.0/24 for creating 6 subnets --> 2^3 ie 3 will be new bits
+3 bits we will be giving for subnet masking
+10.0.0.0/24 in binary representation
+
+8bits + 8bits + 8bits + 8bits = 32 bits 
+24 bits already assigned to network
+8 bits remains for the host -- out of which 3 we are adding to the host (As a part of adding the subnet)
+
+Only 5 bits are available to the host now
+
+So now 3 bits can be raging from 000 to 111
+start from rightmost to the left
+2^0 * 1 = 1 (maximum value it can have at that unit position)
+2^1 * 1 = 2 (maximum value it can have at that tens position)
+2^2 * 1 = 4 (maximum value it can have at that hundredth position)
+
+Adding it up brings out 1 + 2 + 4 = 7(Max value it can obtain) 
+
+7 acts as netnum here [Ranges from 0 to 7]
+
+so net num should move form 0 to 7 
+
+We cannot us for loop as its already in use ; no foreach loop as its already in use;
+
+But we can see as we arre calculating the map in the for_each
+for_each   = { for index, az_name in data.aws_availability_zones.this.names : index => az_name }
+
+so we could make use of the key value pair in it like {"1": "us-east-1a", "2": "us-east-1b"...}
+as we just wanted the number so we can just loop in the by using "each.key"
+
+Similarly to find the avalibility zones we have can fetch it as ==> each.value
+
+-----------
+So now in the case of the public subnet we need to change the IP Adresses as it would result into the Ip Address Conflict as private and the public subnet should not contain the same IP
+
+here we are creating 6 subnets in total for public and private subnets
+
+for 6 subnets new bits will be 3 (Calculated above)
+
+Now our biggest challenge will be the asigning diffrnt ranges for public and private Subnets
+
+length(data.aws_availability_zones.this.names) > 4 ? 3(Required newbits) : 2
+Change1 : length(data.aws_availability_zones.this.names) > 3 ? 3(Required newbits) : 2 (It will fail when the subnets are less than 3 here as it would require 2 as newbits)
+Change2 : length(data.aws_availability_zones.this.names) > 3 ? 4(Required newbits) : 3 ()
+Change3: Now we need to find the netnum such taht the Ips do not coincide with each other
+
+         length(data.aws_availability_zones.this.names) > 3 ? 4 : 3, each.key+length(data.aws_availability_zones.this.names)    
+
+         Let us consider for the
+         Public ==> 1-3 subnets should be there
+         Private ==> 4-6 subnets should be there so by adding this length(data.aws_availability_zones.this.names) > 3 ? 4 : 3, each.key+length(data.aws_availability_zones.this.names) it would work as charm    
+
+Or Change 4: simply we could just add it into the index of the privbate subnets so it will just iterate it from that number of index
+
+        Initially index=0 , lengthdata.aws_availability_zones.this.names) > 3 ? 4 : 3, each.key+length(data.aws_availability_zones.this.names) let be 3
+        index+data.aws_availability_zones.this.names) > 3 ? 4 : 3, each.key+length(data.aws_availability_zones.this.names) = 0+3 =3
+
+        next iteration ==>  1 + 3 = 4
+        next iteration ==>  2 + 3 = 5
+        next iteration ==>  3 + 3 = 6
+        
+
+########################## END Day 11 ########################################################

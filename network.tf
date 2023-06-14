@@ -9,18 +9,32 @@ resource "aws_vpc" "this" {
 }
 
 resource "aws_subnet" "public_subnet" {
-  for_each   = { for index, az_name in data.aws_availability_zones.this.names : index => az_name }
-  vpc_id     = aws_vpc.this.id
-  # cidr_block = ""
+  for_each          = { for index, az_name in data.aws_availability_zones.this.names : index => az_name }
+  vpc_id            = aws_vpc.this.id
+  cidr_block        = cidrsubnet(var.cidr_for_vpc, length(data.aws_availability_zones.this.names) > 3 ? 4 : 3, each.key)
+  availability_zone = each.value
+
+  tags = {
+    Name = "public-subnet-${each.key}"
+  }
 }
 
-# resource "aws_subnet" "private_subnet" {
 
-# }
+resource "aws_subnet" "private_subnet" {
+  for_each          = { for index, az_name in data.aws_availability_zones.this.names : index + length(data.aws_availability_zones.this.names) => az_name }
+  vpc_id            = aws_vpc.this.id
+  cidr_block        = cidrsubnet(var.cidr_for_vpc, length(data.aws_availability_zones.this.names) > 3 ? 4 : 3, each.key)
+  availability_zone = each.value
+
+  tags = {
+    Name = "private-subnet-${each.key}"
+  }
+}
+
 variable "no_of_subnets" {
   type        = number
   description = "Number of subnets to be created"
-  default     = 6 #If variable is not passed then waht value needed to be considered
+  default     = 6 
 }
 
 variable "cidr_subnet" {
