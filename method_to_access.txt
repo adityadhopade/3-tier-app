@@ -419,7 +419,7 @@ cidr will now be 10.0.0.0/26
 
 TASK: But we will not know the how many avaklibility zones would be there; but we need each AZ should contain a private subnet
 
-AZ will not be greater than 8 for now(Max to max in aws till now)
+NOTE: AZ will not be greater than 8 for now(Max to max in aws till now)
 
 if suppose there we have 6 AZ then in that case; as per our condition we require each AZ should contain each private subnet so we reuire 6 subnets
 
@@ -466,13 +466,13 @@ We cannot us for loop as its already in use ; no foreach loop as its already in 
 But we can see as we arre calculating the map in the for_each
 for_each   = { for index, az_name in data.aws_availability_zones.this.names : index => az_name }
 
-so we could make use of the key value pair in it like {"1": "us-east-1a", "2": "us-east-1b"...}
+as the for_each loop only supports map and set and here it is providing us with the map ; so we could make use of the key value pair in it like {"1": "us-east-1a", "2": "us-east-1b"...}
 as we just wanted the number so we can just loop in the by using "each.key"
 
 Similarly to find the avalibility zones we have can fetch it as ==> each.value
 
 -----------
-So now in the case of the public subnet we need to change the IP Adresses as it would result into the Ip Address Conflict as private and the public subnet should not contain the same IP
+Scenario: So now in the case of the public subnet we need to change the IP Adresses as it would result into the Ip Address Conflict (as private and the public subnet should not contain the same IP)
 
 here we are creating 6 subnets in total for public and private subnets
 
@@ -491,10 +491,10 @@ Change3: Now we need to find the netnum such taht the Ips do not coincide with e
          Public ==> 1-3 subnets should be there
          Private ==> 4-6 subnets should be there so by adding this length(data.aws_availability_zones.this.names) > 3 ? 4 : 3, each.key+length(data.aws_availability_zones.this.names) it would work as charm    
 
-Or Change 4: simply we could just add it into the index of the privbate subnets so it will just iterate it from that number of index
+Or Change 4: simply we could just add it into the index of the private subnets so it will just iterate it from that number of index
 
-        Initially index=0 , lengthdata.aws_availability_zones.this.names) > 3 ? 4 : 3, each.key+length(data.aws_availability_zones.this.names) let be 3
-        index+data.aws_availability_zones.this.names) > 3 ? 4 : 3, each.key+length(data.aws_availability_zones.this.names) = 0+3 =3
+        Initially index=0 , length(data.aws_availability_zones.this.names) > 3 ? 4 : 3, each.key+length(data.aws_availability_zones.this.names) let be 3
+        index+(data.aws_availability_zones.this.names) > 3 ? 4 : 3, each.key+length(data.aws_availability_zones.this.names) = 0+3 =3
 
         next iteration ==>  1 + 3 = 4
         next iteration ==>  2 + 3 = 5
@@ -502,3 +502,6 @@ Or Change 4: simply we could just add it into the index of the privbate subnets 
         
 
 ########################## END Day 11 ########################################################
+
+############################## Day 12 ########################################################
+############################## END DAY 12 #####################################################
