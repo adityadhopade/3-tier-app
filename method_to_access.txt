@@ -539,6 +539,8 @@ way1 : is by passing variables
 
 terraform apply --var "cidr_for_vpc=10.0.0.0/24" --var "vpc_name=vpc_3tier"
 
+terraform apply --auto-approve -var="cidr_for_vpc=10.0.0.0/24"
+
 way2 : It is by adding the file like [network.tfvars] and add the variable here
 
 cidr_for_vpc= "10.0.0.0/24"
@@ -546,7 +548,9 @@ vpc_name = "terraform_vpc"
 NOte: we can also define(override) the existing ones which ahve also defined in their default fields
 eg tenancy = dedicated
 
-terraform plan -var-file = "network.tfvars"
+While destroying even if it takes the var argumnets it is of no use here in our case
+
+terraform plan --auto-approve  -var-file = "network.tfvars"
 
 if do not want to write the dediacated file name in -var-file then just change the name of the file to the following format
 
@@ -556,21 +560,82 @@ way3 : By adding the file terraform.tfvars (nod need to ad auto here as it has h
 
 It acts a the default file for the terraform conisdering all thetfvars file.
 
+During destroying aslo it doesnt take any input after apssing it the terraform.tfvars file
+
 way4 : By adding the Environment variables for the variables
 
 export TF_VAR_cidr_for_vpc = "10.0.0.0/24"
+export TF_VAR_cidr_for_vpc="10.0.0.0/24"
 
-NOTE: But once the session is over the ENV_VARIABLES get destroyed
-
-
-Precedence order
+NOTE: But once the session is over (TErminal shuts dowm) the ENV_VARIABLES get destroyed
 
 
+Precedence order (last has the highest priority)
+
+Environment variables
+The terraform.tfvars file, if present.
+The terraform.tfvars.json file, if present.
+Any *.auto.tfvars or *.auto.tfvars.json files, processed in lexical order of their filenames.
+Any -var and -var-file options on the command line, in the order they are provided. (This includes variables set by a Terraform Cloud workspace.)
 
 
 
+Resource for Route Tables
+
+We need to add 1 default route table. If we aare making change in the route table then all the previous routes will be scraped and only new ones would get considered
+
+// priavte Route table 
+resource "aws_default_route_table" "this" {
+  default_route_table_id = aws_vpc.this.default_route_table_id
+
+  # WE do not need the route for the local by default it will be added
+
+  tags = {
+    Name = "private_routetable_${var.vpc_name}"
+  }
+}
+
+// Public Route Table we need to provide the internet gateway such taht the access should be allowed by everyone
+
+Also for the public route table we need to add the internet_gateway as the ressource and should also check for the required dependencies of the internet gateway which is (the vpc_id in our case)
+
+resource "aws_route_table" "this" {
+  vpc_id = aws_vpc.this.id
+
+  # WE do not need the route for the local by default it will be added
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    # in public rt we require the internet gateway also
+    gateway_id = aws_internet_gateway.this.id
+  }
+
+  tags = {
+    Name = "public_routetable_${var.vpc_name}"
+  }
+}
+
+#We need to add it and what arguments are required in it with the attribute refrences
+
+resource "aws_internet_gateway" "this" {
+  vpc_id = aws_vpc.this.id
+
+  tags = {
+    Name = "igw-${var.vpc_name}"
+  }
+}
+
+making those changes we will get the error below
+│ Error: creating Route in Route Table (rtb-062e33bad961ed4df) with destination (10.0.0.0/24): InvalidParameterValue: The destination CIDR block 10.0.0.0/24 is equal to or more specific than one of this VPC's CIDR blocks. This route can target only an interface or an instance.
 
 
+Why is it facing error?
+
+As we are providing the internet gateway we need to make it availble to access the internet i.e. it should be allowed for everyone
+
+
+so in the public subnet change the field cidr_block we need to change the following as 0.0.0.0/0
+now it should work as defined and with no error
 
 
 ############################## END DAY 12 #####################################################
