@@ -637,5 +637,5 @@ As we are providing the internet gateway we need to make it availble to access t
 so in the public subnet change the field cidr_block we need to change the following as 0.0.0.0/0
 now it should work as defined and with no error
 
-
+ git log --oneline // gives the log of github
 ############################## END DAY 12 #####################################################
