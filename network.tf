@@ -8,10 +8,10 @@ resource "aws_vpc" "this" {
   }
 }
 
-resource "aws_subnet" "public_subnet" {
-  for_each          = { for index, az_name in data.aws_availability_zones.this.names : index => az_name }
+resource "aws_subnet" "private_subnet" {
+  for_each          = { for index, az_name in slice(data.aws_availability_zones.this.names, 0, 2) : index => az_name }
   vpc_id            = aws_vpc.this.id
-  cidr_block        = cidrsubnet(var.cidr_for_vpc, length(data.aws_availability_zones.this.names) > 3 ? 4 : 3, each.key)
+  cidr_block        = cidrsubnet(var.cidr_for_vpc, length(data.aws_availability_zones.this.names) > 4 ? 3 : 2, each.key)
   availability_zone = each.value
 
   tags = {
@@ -20,10 +20,10 @@ resource "aws_subnet" "public_subnet" {
 }
 
 
-resource "aws_subnet" "private_subnet" {
-  for_each          = { for index, az_name in data.aws_availability_zones.this.names : index + length(data.aws_availability_zones.this.names) => az_name }
+resource "aws_subnet" "public_subnet" {
+  for_each          = { for index, az_name in slice(data.aws_availability_zones.this.names, 0, 2) : index => az_name }
   vpc_id            = aws_vpc.this.id
-  cidr_block        = cidrsubnet(var.cidr_for_vpc, length(data.aws_availability_zones.this.names) > 3 ? 4 : 3, each.key)
+  cidr_block        = cidrsubnet(var.cidr_for_vpc, length(data.aws_availability_zones.this.names) > 4 ? 3 : 2, each.key + length(data.aws_availability_zones.this.names))
   availability_zone = each.value
 
   tags = {
@@ -34,7 +34,7 @@ resource "aws_subnet" "private_subnet" {
 variable "no_of_subnets" {
   type        = number
   description = "Number of subnets to be created"
-  default     = 6 
+  default     = 6
 }
 
 variable "cidr_subnet" {

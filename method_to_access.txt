@@ -503,5 +503,74 @@ Or Change 4: simply we could just add it into the index of the private subnets s
 
 ########################## END Day 11 ########################################################
 
-############################## Day 12 ########################################################
+############################## Day 12 Add dynamic variables and Route Tables########################################################
+
+Scenario: In our earlier case we have built 6 oublic and 6 private subnets but we want to limit it for each AZ 1 public and 1 private subnets
+
+For this we can use function slice
+
+slice -- Syntax: slice(list, start index, end index)
+
+NOTE: It would only work on the list dataype and end index will not be considered in the list
+
+
+adding the slice in the "private_subnet" for loop here we will get the follwing { for index, az_name in slice(data.aws_availability_zones.this.names, 0, 2) : index => az_name }
+so by the steps above it will create 2 Avalibilty zones as per our condition we require same number of subnets as avalibilty zones so we get 2 subnets in the private
+same piece of chaneges for the "Private subnet" also ==> 2 public subnet here also created (By above logic)
+
+
+
+For 4 subnets(2 public and private) the new newbits will be as follows
+
+2^2 = 4 satisfies ==> 2 will be the netnum then
+
+so we need to change the condition of our ternary operator as follows
+
+Earlier: length(data.aws_availability_zones.this.names) > 3 ? 4 : 3
+Changed: length(data.aws_availability_zones.this.names) > 3 ? 4 : 3
+          4 < 3 ? 2 : 3
+so now it will traverse from the 0th index avalilbilty zone eg us-east-1a ; 1st index: will be us-east-1b; it will be there only  
+Also the index+(data.aws_availability_zones.this.names) gives out some problem so we can move that length(data.aws_availability_zones.this.names) to each.key(As seen on day 11)
+
+-------------------------
+To passs the variables in here we can do it by many ways 
+
+way1 : is by passing variables
+
+terraform apply --var "cidr_for_vpc=10.0.0.0/24" --var "vpc_name=vpc_3tier"
+
+way2 : It is by adding the file like [network.tfvars] and add the variable here
+
+cidr_for_vpc= "10.0.0.0/24"
+vpc_name = "terraform_vpc"
+NOte: we can also define(override) the existing ones which ahve also defined in their default fields
+eg tenancy = dedicated
+
+terraform plan -var-file = "network.tfvars"
+
+if do not want to write the dediacated file name in -var-file then just change the name of the file to the following format
+
+network.auto.tfvars ==> try to run using terraform apply then it would automatically consider your file and the variables in it will get passed
+
+way3 : By adding the file terraform.tfvars (nod need to ad auto here as it has higher preceddence)
+
+It acts a the default file for the terraform conisdering all thetfvars file.
+
+way4 : By adding the Environment variables for the variables
+
+export TF_VAR_cidr_for_vpc = "10.0.0.0/24"
+
+NOTE: But once the session is over the ENV_VARIABLES get destroyed
+
+
+Precedence order
+
+
+
+
+
+
+
+
+
 ############################## END DAY 12 #####################################################
