@@ -599,6 +599,14 @@ resource "aws_default_route_table" "this" {
 
 Also for the public route table we need to add the internet_gateway as the ressource and should also check for the required dependencies of the internet gateway which is (the vpc_id in our case)
 
+It should have target as internet gateway(that we need to create using the resources) and destination as 0.0.0.0/0 (Open for all i.e. it specifies all networks)
+
+
+What is the 0.0.0.0/0 ?
+The default route in Internet Protocol Version 4 (IPv4) is designated as the zero-address 0.0.0.0/0 in CIDR notation, often called the quad-zero route. 
+The subnet mask is given as /0, which effectively specifies all networks, and is the shortest match possible.
+
+
 resource "aws_route_table" "this" {
   vpc_id = aws_vpc.this.id
 
@@ -639,3 +647,213 @@ now it should work as defined and with no error
 
  git log --oneline // gives the log of github
 ############################## END DAY 12 #####################################################
+
+############################### DAY 13 #######################################################
+
+WE have created the public and private route table ablove but we have not written the "subnet assosiated" with it; we need to add them 
+
+When routes are created then we need to asosisate the subnets
+
+gebnrally "this" is used when we have some unique resource eg only one vpc (so its better to understand)
+
+If we are not multiple resourcesd then the resource name should be added as standard
+
+search for aws_route_table ==>  we can get the folowing as 
+
+resource "aws_route_table_association" "a" {
+  subnet_id      = aws_subnet.foo.id
+  route_table_id = aws_route_table.bar.id
+}
+
+Add for both the public and the private subnet
+#route table assosiation for private  subnets
+resource "aws_route_table_association" "private_subnet_assosiation" {
+  subnet_id      = aws_subnet.private_subnet.id
+  route_table_id = aws_default_route_table.this.id
+}
+
+#route table assosiation for public subnet
+resource "aws_route_table_association" "public_subnet_assosiation" {
+  subnet_id      = aws_subnet.public_subnet.id
+  route_table_id = aws_route_table.this.id  # also check if we could add the id or not simply by searching it
+}
+
+
+It will throw out the error ? 
+
+ 71:   subnet_id      = aws_subnet.private_subnet.id
+│ 
+│ Because aws_subnet.private_subnet has "for_each" set, its
+│ attributes must be accessed on specific instances.
+│ 
+│ For example, to correlate with indices of a referring
+│ resource, use:
+│     aws_subnet.private_subnet[each.key]
+╵
+
+How to resolve it then ?
+
+As subnet_id      = aws_subnet.public_subnet.id it is a for_each and we cannot simply calculate it by this
+
+As we do not have single id we have multiple public and private subnet so we need to make changes such taht we can make a refrence to all of the ids ?
+
+We need t o use the "splat expressions" 
+
+It is represented byu the help of the [*] ==> It can be directly used if instead of "for_each" it has "count"
+
+In case of count it will iterate through all the ids like
+
+resource "aws_route_table_association" "private_subnet_assosiation" {
+  subnet_id      = aws_subnet.private_subnet[*].id
+  route_table_id = aws_default_route_table.this.id
+}
+
+#route table assosiation for public subnet
+resource "aws_route_table_association" "public_subnet_assosiation" {
+  subnet_id      = aws_subnet.public_subnet[*].id
+  route_table_id = aws_route_table.this.id  # also check if we could add the id or not simply by searching it
+}
+
+BUT as we have the for_each here so we can use the syntax below i.e.
+
+[for o in var.list : o.interfaces[0].name]
+
+resource "aws_route_table_association" "private_subnet_assosiation" {
+  subnet_id      = [for each_subnet in aws_subnet.private_subnet: each_subnet.id]
+  route_table_id = aws_default_route_table.this.id
+}
+
+#route table assosiation for public subnet
+resource "aws_route_table_association" "public_subnet_assosiation" {
+  subnet_id      = [for each_subnet in aws_subnet.public_subnet: each_subnet.id]
+  route_table_id = aws_route_table.this.id
+}
+
+
+But still its not working as we are reciveing it in for expects a string
+
+we can change the logic in it and alter it by adding a for_each loop
+
+for_each = [for each_subnet in aws_subnet.private_subnet: each_subnet.id]
+
+but for_each accepts either map or set
+we convert it to the set using "toset"
+
+for_each = toset[for each_subnet in aws_subnet.private_subnet: each_subnet.id]
+
+ subnet_id      = each.key or each.value (Both are valid in the case of the set)
+
+
+ try to terraform plan and terraform apply --auto-approve
+
+ Check in the route table ==> subnet associations 
+
+ For public route table we ae getting the public subnets attached to it
+ For private route table we are getting the private subnet attached to it repectively
+
+----------------
+for now lets moveto output.tf file
+
+The output.tf file helps in gving out the values eg vpc_id, such taht the values can be fetched and could be used anywhere outisde for automation
+
+output "vpc_id" {
+  value = aws_vpc.this.id
+}
+
+the value which we need to show should be added in the value field.
+
+NOTE: if it contains the dynamic value it will show us "to be fetched" ==> after applying terraform plan
+
+But if we are applyin the terraform apply ===> then go for terraform plan then it shows us the output value here in our case the vpc id 
+
+to get the output diresctly we can give it as "terraform output" command
+---------------------------
+
+NAT Gateway
+After that in VPC also need to connect the NAT GAteway to our vpc as 
+
+Our application will be in the private subnets and if any dependencies are needed then we need it to fetch from the local or outside then 
+For that we need to install the nat gateway in the public subnet such taht it will acts as the bridge between the outer worl and our webserver(application) to fetch the dependencies
+
+We need t create the resource for the nat gateway
+NOTE:  NAT Gateway is for private subnets but we need to host it on the public subnets ?!
+resource "aws_nat_gateway" "example" {
+  allocation_id = aws_eip.example.id
+  subnet_id     = aws_subnet.example.id
+
+  tags = {
+    Name = "gw NAT"
+  }
+
+  # To ensure proper ordering, it is recommended to add an explicit dependency
+  # on the Internet Gateway for the VPC.
+  depends_on = [aws_internet_gateway.example]
+}
+
+For NAT Gateway we need to asssign a Public IP i.e. a elastic IP and that is billable it costs our usage per seconds
+
+IN NAT Gateway it also has allocation_id which has the dependency on the following such as elastic_ip i.e. elastic_ip so we need a resource for taht also 
+resource "aws_eip" "byoip-ip" {
+  domain           = "vpc"
+  public_ipv4_pool = "ipv4pool-ec2-012345"
+}
+
+and change it to this 
+
+remove the ipv4 field as we are not assigning a static ip there
+
+resource "aws_eip" "this" {
+  domain           = "vpc" 
+}
+
+---------
+ resource "aws_nat_gateway" "this" {
+  allocation_id = aws_eip.this.id
+  subnet_id     = aws_subnet.example.id # we want it for 2 AZ but it will charge us more so to avoid the incursion we get it as 
+
+
+  tags = {
+    Name = "gw NAT"
+  }
+
+  # To ensure proper ordering, it is recommended to add an explicit dependency
+  # on the Internet Gateway for the VPC.
+  depends_on = [aws_internet_gateway.example]
+}
+
+subnet_id     = aws_subnet.example.id  here we will be adding the NAT GAteway in the 1 AZ only and not any other one to reduce costing in AWS
+
+so for getting only one value we will take it as
+
+we want to create the nat gateway in 1 AZ only
+
+In TF there is genearlly the implicat dependency followed in like 
+
+FIrst there will be the vpc creation then only the subnets we can create or viceversa is not possible in our case.
+
+
+ resource "aws_nat_gateway" "this" {
+  allocation_id = aws_eip.this.id
+  subnet_id     = aws_subnet.example.id # we want it for 2 AZ but it will charge us more so to avoid the incursion we get it as 
+
+
+  tags = {
+    Name = "gw NAT"
+  }
+
+  # To ensure proper ordering, it is recommended to add an explicit dependency
+  # on the Internet Gateway for the VPC.
+  depends_on = [aws_internet_gateway.example]
+}
+
+But sometimes we need to pass some external implications
+
+So in the above code the natgateway should only be created afterthe internet gateway is created and that is carried in the "depends_on" meta_argument for explicait dependency
+
+
+VERY IMPORTANT NOTE: If wanted to add the Route table assosisation remember to terraform apply first before adding the Route Table assosiation
+
+1st run with natgateway and o/p and then later run it after adding route table assosiation
+ 
+
+################################## END DAY 13 ################################################

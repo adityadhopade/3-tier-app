@@ -13,67 +13,74 @@ resource "aws_subnet" "private_subnet" {
   vpc_id            = aws_vpc.this.id
   cidr_block        = cidrsubnet(var.cidr_for_vpc, length(data.aws_availability_zones.this.names) > 4 ? 3 : 2, each.key)
   availability_zone = each.value
+  tags = {
+    Name = "private-subnet-${each.key}"
+  }
+}
 
+resource "aws_subnet" "public_subnet" {
+  for_each          = { for index, az_name in slice(data.aws_availability_zones.this.names, 0, 2) : index => az_name }
+  vpc_id            = aws_vpc.this.id
+  cidr_block        = cidrsubnet(var.cidr_for_vpc, length(data.aws_availability_zones.this.names) > 4 ? 3 : 2, each.key + length(data.aws_availability_zones.this.names))
+  availability_zone = each.value
   tags = {
     Name = "public-subnet-${each.key}"
   }
 }
 
-
 resource "aws_default_route_table" "this" {
   default_route_table_id = aws_vpc.this.default_route_table_id
 
-  # WE do not need the route for the local by default it will be added
-
   tags = {
-    Name = "private_routetable_${var.vpc_name}"
+    Name = "private_rt_${var.vpc_name}"
   }
 }
 
 resource "aws_route_table" "this" {
   vpc_id = aws_vpc.this.id
 
-  # WE do not need the route for the local by default it will be added
-
   route {
     cidr_block = "0.0.0.0/0"
-    # in public rt we require the internet gateway also
     gateway_id = aws_internet_gateway.this.id
   }
 
   tags = {
-    Name = "public_routetable_${var.vpc_name}"
+    Name = "public_rt_${var.vpc_name}"
   }
 }
 
-#We need to add it and what arguments are required in it with the attribute refrences
-
 resource "aws_internet_gateway" "this" {
   vpc_id = aws_vpc.this.id
-
   tags = {
     Name = "igw-${var.vpc_name}"
   }
 }
-resource "aws_subnet" "public_subnet" {
-  for_each          = { for index, az_name in slice(data.aws_availability_zones.this.names, 0, 2) : index => az_name }
-  vpc_id            = aws_vpc.this.id
-  cidr_block        = cidrsubnet(var.cidr_for_vpc, length(data.aws_availability_zones.this.names) > 4 ? 3 : 2, each.key + length(data.aws_availability_zones.this.names))
-  availability_zone = each.value
 
+# route table association for private subnets
+
+resource "aws_route_table_association" "private_subnet_association" {
+  for_each       = toset([for each_subnet in aws_subnet.private_subnet : each_subnet.id])
+  subnet_id      = each.key
+  route_table_id = aws_default_route_table.this.id
+}
+resource "aws_route_table_association" "public_subnet_association" {
+  for_each       = toset([for each_subnet in aws_subnet.public_subnet : each_subnet.id])
+  subnet_id      = each.key
+  route_table_id = aws_route_table.this.id
+}
+
+resource "aws_nat_gateway" "this" {
+  allocation_id = aws_eip.this.id
+  subnet_id     = element([for each_subnet in aws_subnet.public_subnet : each_subnet.id], 0)
   tags = {
-    Name = "private-subnet-${each.key}"
+    Name = "nat_gw_${var.vpc_name}"
   }
+
+  # To ensure proper ordering, it is recommended to add an explicit dependency
+  # on the Internet Gateway for the VPC.
+  depends_on = [aws_internet_gateway.this]
 }
 
-variable "no_of_subnets" {
-  type        = number
-  description = "Number of subnets to be created"
-  default     = 6
-}
-
-variable "cidr_subnet" {
-  type        = list(string)
-  description = "List of CIDR range in Subnets"
-  default     = ["192.168.0.0/27", "192.168.0.32/27", "192.168.0.64/27", "192.168.0.96/27", "192.168.0.128/27", "192.168.0.160/27"]
+resource "aws_eip" "this" {
+  domain = "vpc"
 }
