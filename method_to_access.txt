@@ -871,6 +871,106 @@ As it was unable to fetch the private and public subnet at the time of execution
 
 Earlier Version: for_each       = toset([for each_subnet in aws_subnet.private_subnet : each_subnet.id])
 Chnaged Version: for_each       = { for index, each_subnet in aws_subnet.private_subnet: index => each_subnet.id }
+
+
+
 Statefile and best practices
 
-terraform state list
+1. State File acts as single source of truth for Terraform configuration
+2. Whatever is declared in the Terraform File is known as the Desired State !! 
+3. Whatever is created in the cloud infra is called as Current State
+
+So we always define what is desired in the current state in the Terraform File and we get the current state in the cloud infrastructre
+
+Q. How terraform comapres the Desired State with the Curent State ?
+
+With the help of STATE FILE only.
+
+1. State File contains everything the Key value pairs.
+2. It contains granular level details about the infrastruccture
+
+terraform state list --> It lists out all the reosurces which has been provisoned by the Terraform
+
+Q. What if we remove any resource from the Terraform state file ?
+
+terraform state rm <resource_name> eg. terraform state rm aws_eip 
+
+again running terraform plan
+
+terraform plan 
+
+Working: It will again try to install the eip and the earlier installer eip will now be destroyed
+
+NOTE: While removing anything the resource already lying eg. The earlier elastic ip it will not be tracked so we need to delete that resource manually or else it will incurr costing
+
+terraform state -help => States the list we can use with the teraform state
+
+terraform state show <resource_name> => gives details about the resource
+--------------------
+
+Backend: It defines where terraform store its State Data files
+
+NOTE: Add the backend in the provider.tf 
+
+This lets multiple people access the state data and work together on that ollection of infra resources
+
+Refertence Links : https://developer.hashicorp.com/terraform/language/settings/backends/configuration
+
+We can store in consul ==> it is a hashicorp product and stores in the key value pair
+
+What all can be part of backend ?
+
+1. azurerm
+2. consul
+3. gcs
+4. kubernetes
+5. local
+6. oss
+7. pg
+8. s3
+9. etcd (kubernetes)
+
+
+Consider s3 as storage (Simple Storage Service)
+
+It is object storage service 
+
+Object Storage 
+Block Storage ==> supported by san devices
+File Storage ==> 
+
+
+Media files could also be directly stored onto the s3 bucket
+s3 as artifactory can also be used.
+
+s3 is a global service then it should be having a unique name acros the world
+
+we need to get the region for the s3 bucket ==> Why ? ==> S3 is global but the bucket should be present in certain region
+
+we need to maintain the version for the s3 bucket also for mainitainance and tracking purpose
+
+in s3 key is the filename
+
+  backend "s3" {
+    bucket = "terraformstatefiles3backend"
+    key = "teraform-state-file-backend-s3"
+  }
+
+aks us to add a region we can add directly in the backend the region as a field then
+
+  backend "s3" {
+    bucket = "terraformstatefiles3backend"
+    key = "teraform-state-file-backend-s3"
+    region = "us-east-1"
+  }
+
+still not run as it do not have permissiopn ==> What to do ? It needs to assume the role in the backend in the terraform block
+
+As mentioned in the provider.tf file ==> It has first the terraform block and then the aws provider block where we have assumed the role ==> so we need to explicitly add the role_arn field to the terraform block and it will give it the required permission
+
+
+terraform init ==> create the state file tfstatefile
+
+Try destroying it ? 
+
+terraform destroy it will destroy the gebnerated tfstate file
