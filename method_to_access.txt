@@ -857,3 +857,20 @@ VERY IMPORTANT NOTE: If wanted to add the Route table assosisation remember to t
  
 
 ################################## END DAY 13 ################################################
+
+Earlier  as we obsereved we were facing this issue
+
+VERY IMPORTANT NOTE: If wanted to add the Route table assosisation remember to terraform apply first before adding the Route Table assosiation
+
+1st run with natgateway and o/p and then later run it after adding route table assosiation
+ 
+
+So according to the discussuion we can observe that the we do not need to  comment out and then run the infra without the assosiate route table 
+
+As it was unable to fetch the private and public subnet at the time of execution then what we can do is to use the MAP instead of SET 
+
+Earlier Version: for_each       = toset([for each_subnet in aws_subnet.private_subnet : each_subnet.id])
+Chnaged Version: for_each       = { for index, each_subnet in aws_subnet.private_subnet: index => each_subnet.id }
+Statefile and best practices
+
+terraform state list
