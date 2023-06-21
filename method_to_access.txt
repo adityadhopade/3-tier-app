@@ -964,6 +964,30 @@ aks us to add a region we can add directly in the backend the region as a field 
     region = "us-east-1"
   }
 
+While createing it on the AWS we should consider
+
+to uncheck the  "Block Public Access settings for this bucket"
+
+Enabling the bucket versioning  
+
+Disable the Bucket Key
+
+Fields in the backend "s3" adn their functions 
+
+1 .bucket =>  gives out the names of the bucket
+2. key => It is nothing but the file name and state file will be stored in it. Do not need to create it TF will take care to create it.
+          eg key = "terraform-state-file-june-23"
+3. region ==> The region where the s3 bucket we want to store eg. us-east-1
+
+Why we need to reinitailise ?
+
+As we are storing the data / tfstate file in the backend i.e storing in the s3.
+So the statefile which is avilable in the local right now we want to make it avilable in the s3 as well.
+So we need to infrom the plugin "terraform provider" that we have made the change of storing the state file in the s3 bucket provided by user in the configuration
+
+For thuis purpose we need to initialise
+terrafrom init ==> used to initialise the creation
+
 still not run as it do not have permissiopn ==> What to do ? It needs to assume the role in the backend in the terraform block
 
 As mentioned in the provider.tf file ==> It has first the terraform block and then the aws provider block where we have assumed the role ==> so we need to explicitly add the role_arn field to the terraform block and it will give it the required permission
@@ -973,4 +997,43 @@ terraform init ==> create the state file tfstatefile
 
 Try destroying it ? 
 
-terraform destroy it will destroy the gebnerated tfstate file
+terraform destroy it will destroy the gebnerated tfstate file in the s3 bucket also 
+################################################
+
+
+#####################################Day 15 ##########################################
+
+As we have commented the bucket part in the provider.tf ==> we need to renitialise it using the terraform init
+Again applying terraform plan 
+
+We face an error like 
+
+ Reason: Unsetting the previously set backend "s3"
+│ 
+│ The "backend" is the interface that Terraform uses to
+│ store state,
+│ perform operations, etc. If this message is showing up,
+│ it means that the
+│ Terraform configuration you're using is using a custom
+│ configuration for
+│ the Terraform backend.
+
+What it means is that there was earlier a resource in the aws s3 with some name and as now we are omitting it so we need to reconfigure 
+
+So for the rconfiguration it can be done with the help of ==> terrafform init -reconfigure  or terraform init -migrate-state
+
+Based on use case: 
+
+terrafform init -reconfigure ==> It will completely reconfigure and locally created state file will be considered.
+terraform init -migrate-state  ==>  The state from the state file which is availabel in the s3 will be migrated to the local.
+
+If state file resources are available in the different location them yhe migrate state is preffered.
+If we want to create everything from the scratch from the new state store we should then consider the reconfigure
+
+
+
+If we try to apply now from the vscode terminal then it will be 
+
+teraform apply --auto-approve
+
+################################### END DAY 15 ################################################
