@@ -998,6 +998,8 @@ terraform init ==> create the state file tfstatefile
 Try destroying it ? 
 
 terraform destroy it will destroy the gebnerated tfstate file in the s3 bucket also 
+
+terraform state pull
 ################################################
 
 
@@ -1031,9 +1033,157 @@ If state file resources are available in the different location them yhe migrate
 If we want to create everything from the scratch from the new state store we should then consider the reconfigure
 
 
+In our case we are  migrating the state 
+terraform init -migrate-state
 
 If we try to apply now from the vscode terminal then it will be 
 
 teraform apply --auto-approve
+
+It will run in the external terminal but will throw out the error for our local system in vscode
+
+What error does it pass to the local system is 
+
+Error: Error acquiring the state lock
+│ 
+│ Error message: resource temporarily unavailable
+│ Lock Info:
+│   ID:        aea5fe89-e8c0-d0bc-f472-1023f59130d4
+│   Path:      terraform.tfstate
+│   Operation: OperationTypeApply
+│   Who:       aditya@aditya-Inspiron-3576
+│   Version:   1.4.6
+│   Created:   2023-06-21 10:49:29.294483941 +0000 UTC
+│   Info:      
+│ 
+│ 
+│ Terraform acquires a state lock to protect the state
+│ from being written
+│ by multiple users at the same time. Please resolve the
+│ issue above and try
+│ again. For most commands, you can disable locking with
+│ the "-lock=false"
+│ flag, but this is not recommended.
+
+NOTE: In TF the same operrtion should not happen at same time from two diferent locations
+
+NOTE:SO till the time terrafrom apply is running on extrnal terminal; it cannot be runned from another location
+
+NOTE: It is used to prevent duplicacy or changes from two different location at the same time
+
+NOTE: In the local state storage it is by default available.
+
+Q. What if I want to initialise whatever in teh state file in localshould be present in the s3 also>
+use terraform init -migrate-state
+
+
+
+But when we run tghe terraorm apply -migrate-state on boith the terminal now it is running and do not give the error related to state lock ? WHY ?
+
+==> When we have the state file available locally then terraform takes care of locaking the state so that multiple places we cannot perform the operation related to terraform
+But when the backend is stored in the Remote then we need to take care of the locking as well.  
+
+
+So we need the locking mechanism for the state locking ? Is there some method so that from one palce it could be applied ?
+
+We can use the DynamoDB Table for state locking
+
+
+In S3 backend ==> Dynamo DB State locking
+
+1. Create the DynamoDB Table ==> It is a NO SQL Database. It not only stores the value in structured and unstructured data can completely managed by AWS
+table name as "terraformstatetable"
+
+NOTE: A "Partition Key" also must be added by name "LockID" and type should be a "string"
+
+
+NOTE: We do not need to take care of the integration of the AWS S3 and DynamoDb integration after providing the partition key as LockID
+
+Add it to the backend block in terraform block in the provider.tf
+
+dynamodb_table = "terraformstatetable" ==> dynamodb_table ="name of the file"
+
+
+  backend "s3" {
+    bucket   = "terraformstatefiles3backend"
+    key      = "terraform-state-file-june-23"
+    region   = "us-east-1"
+    role_arn = "arn:aws:iam::972348856143:role/stsassumerole"
+    dynamodb_table = "terraformstatetable"
+  }
+
+Now try to run ==> But first we need to initialise the terraform file with terraform init -reconfigure
+
+try running it on both the browsers
+
+It naow enables the state lcoaking for us 
+-------
+Now we are going to move towards the autoscaling group ==> we need to create the insatcnes for webserver and the application server and alos need to create the RDS
+
+WE can create using the EC2 instance and another one using the Auto scaling group
+-----
+Before than we have "locals"
+
+we can define our local variable in the "locals block"
+
+locals vs variables ??
+
+Local acts as input variable only and based on variables we can create a condition
+We can define local variable in the locals block
+
+- In variables we can have the value of particular datatype; but I want some customization it should also have some extra charecters in the end.
+
+eg we want to add the vpc_name with some other info then we need to make use of the locals block.
+
+eg creating locals.tf in which it contains 
+locals {
+  vpc_name_local = "${var.vpc_name}-lwplabs"
+}
+
+In the variable we cannot do such things and so we need to make use of locals we can only make use of default value it will only be taken if values not provided by user.
+
+Scenario: If for 2 AZ we want some condition and for 4 AZ we want another condition then ?
+
+It can be done with the help of this solution 
+locals {
+  vpc_name_local = "${var.vpc_name}-lwplabs"
+  az_required = var.env == "prod" ?  slice(data.aws_availability_zones.this.names, 0, 2) :  slice(data.aws_availability_zones.this.names, 0, 4)
+}
+
+
+Now we want to reflect these changes on our vpc so we need to make changes on network.tf
+
+resource "aws_vpc" "this" {
+  cidr_block           = var.cidr_for_vpc
+  instance_tenancy     = var.tenancy
+  enable_dns_hostnames = var.dns_hostnames_enabled
+  enable_dns_support   = var.dns_support_enabled
+  tags = {
+    Name = var.vpc_name
+  }
+}
+
+In tags we need to make a change here like 
+
+  tags = {
+    Name = local.vpc_name_local
+  }
+
+  Remember while retriving the data from local we use local but not locals.
+
+----------------------------------
+We will createthe EC2 insatcneresource and another one with the auto scaling
+
+create webserver.tf  => search for aws instance resource terraform,
+
+resource "aws_network_interface" "foo" {
+  subnet_id   = "${aws_subnet.my_subnet.id}"
+  private_ips = ["172.16.10.100"]
+
+  tags = {
+    Name = "primary_network_interface"
+  }
+}
+
 
 ################################### END DAY 15 ################################################
