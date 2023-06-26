@@ -28,3 +28,9 @@ variable "vpc_name" {
   description = "Name of the vpc"
   default     = "vpc-3tier"
 }
+
+variable "web_server_name" {
+  type        = string
+  description = "name of the instance created as web server"
+
+}

@@ -1185,5 +1185,148 @@ resource "aws_network_interface" "foo" {
   }
 }
 
+create the ec2 insatnce using aws console
+
+webserver =>  amazon linux => create a key-pair(ultimate-cicd used here)
+
+  ami   = "ami-022e1a32d3f742bd8"
+  instance_type = "t2.micro"
+  key_name= "ultimate-cicd-pipeline"
+
+we we are doing is we are having a variable with name web_server
+
+in variable.tf ==> 
+
+variable "web_server_name" {
+  type = string
+  description ="name of the ec2 instance in which webserver is present"
+}
+
+we should take the web server name from the user so add it into tfvars.tf file
+
+web_server_name = "terraform-webserver"
+
+adding it by local we need custom name to it
+
+locals {
+  web_server = "${var.web_server_name}-terraform"
+} 
+
+
+To make use of the locals in the webserver.tf file for the web server created by aws instance
+
+tags {
+  Name = "lcoal.web_server"
+}
+
+In this we also need to provide the subnet id and we do not want to create anything in public but the private so we can make use of subnet_id of private
+
+subnet_id = aws_subnet.private_subnet
+
+But it would not accept it as it would require only string for this so we get
+
+to make use of for loop
+
+subnet_id = [for each_subnet in aws_subnet.private_subnet : each_subnet.id]
+
+But we need to create it only on 1 part so we can get to pick using the "element" function
+
+subnet_id = element([for each_subnet in aws_subnet.private_subnet : each_subnet.id],1)
+
+but we have allowed all the teraffic in our case in our ingress(Inbound Rules) but in real case sceanrio there is not such a case so we need to create a security group also
+
+
+search aws security group resource terraform
+
+resource "aws_security_group" "allow_tls" {
+  name        = "allow_tls"
+  description = "Allow TLS inbound traffic"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    description = "TLS from VPC"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = [aws_vpc.main.cidr_block]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "allow_tls"
+  }
+}
+
+in webserver.tf
+
+We want to mke it open fo the webserver so we need to add the port 80(apache/httpd) in ou ingress Rules
+
+ingress {
+    description = "TLS from VPC"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = [aws_vpc.main.cidr_block]
+  }
+
+  We have not creaated the load balancer yet so we should open the cidr block for this only
+
+ingress {
+    description = "TLS from VPC"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = [aws_vpc.this.cidr_block]
+
+  }
+
+Also we need to add nother inbound rrule for SSH purpose so add port 22 for that so we need nother ingress block
+
+ingress {
+    description = "TLS from VPC"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = [aws_vpc.this.cidr_block]
+    
+  }
+
+  Gebnarally the traffic to the webserver should be connected via the Load balancer and with that we need to connect it to the webserver 
+
+  But can we directly conect to our webserver ?
+
+  No we cannot connect directly to our webserver as its in Private Subnet and we need the help of bastion server for that
+
+  outer people wanting to access our webserver can only access via
+
+  aws_nat_gateway --> loadbalancer ==> bastion host ==> webserver in the private subnets
+
+  IMPOTANT NOTE:: Also the NAT Gateway will block all the reqest coming from outside if there is absence of bastion host as no one can directly aaccess the webserver in the private subnet.
+
+  All the dependencies of the web server will be installed by that.
+
+  Also make a note that from connecting via the Bastion host we need to have
+  
+  > We need to have the pem key file of the web server instance as it will be required and also
+
+  > To connect it via ssh and pass its Pivate IP address (NOT PUBLIC)
+
+  
+egress represnt all the outbound rules and it should be for all the traffic.
+
+
+  vpc_security_group_ids = [aws_security_group.this].idss
+
+  as we are creating the instances in a VPC we are makiing use of this 
+
+  if not ec2 clasic and the vpc default we can make the use of "security_groups"
+
+  
 
 ################################### END DAY 15 ################################################
