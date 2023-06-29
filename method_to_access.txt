@@ -1331,7 +1331,7 @@ egress represnt all the outbound rules and it should be for all the traffic.
 
 ################################### END DAY 15 ################################################
 
-################################### DAY 16 ################################################
+################################### DAY 16 Create security groups Ingress/inbound rules using the dynamic block and define the variables using the object data type inside define nested ################################################
 As we need to have the less repetetion of the code and to make it more usable in this so wht we needed to do is taht we should make use of some reuable componmenet 
 
 Extension needed "GlassIt-VSC" to add: Press ctrl+alt+z to increase the transparency, ctrl+alt+c to decrease.
@@ -1493,3 +1493,256 @@ W can use the dynamic server here in egreess as well (but not done)
 
 
 ################################### END DAY 16 ################################################
+
+
+######################################## Day 17 
+GitHub Action:
+Introduction Yml file
+Create simple workflow
+Create Window GitHub runner
+########################################
+
+
+YAML : Yert another markupo langguage
+
+It can support list, map datatypes.
+
+to define key value pair in yaml ==> name: Ravi
+
+Initilaise yml file by adding "---" 3 hyphens
+
+github actions uses the yml to write the pipelines
+----------
+To define map / dictionary in yml we get
+
+address:     ==>  another way company_address: {plot_no: 1, street: kormangla, city: blr}
+  h.no : 1087   
+  street: sakkardara
+  city: hyd
+  pin:: 12344
+
+----------
+
+list or array in yml fil  
+
+skills:    ==> similar to this [tf, k8, devops, ansible, {"softskill": "team player"}]
+  - tf 
+  - k8
+  - devops
+  - ansible
+  - softskill: team player
+
+another way of writing a list
+
+previous_employer: ["ABC", "PQE"]
+
+
+
+----------------------
+
+how to preserve the comments 
+
+feedback_from_manager: |      ===> | allows us to split it in the multiple lines
+  he is a great guy
+  he is a great guy
+  he is a great guy
+
+yml is important from ansible and kubernetes perspective
+
+
+-------------------------------------
+
+
+%%%%%%%%%%%%%%%%%%%%%%%% GitHub ACtions %%%%%%%%%%%%%%%%%%%%%%%%%
+Want to create action goto repo ==> Actions Tab ==> Simple Workflow
+
+1. Here wer can find various templates for already written yml under the Deployment, Security, CI, Automation, Pages
+
+WE do not need to start from screatch there are lots of templates for the deployments and various purpose of workflows
+
+Jenkinss dominace has fallen as our source repo has the functionality to create the pipeline, configure plugins and performing different phases of deployment
+
+
+We ar egonna use Simple Workflow==> It will get us in the folder .github/workflows/blank.yml 
+
+With this code 
+
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the "main" branch
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v3
+
+      # Runs a single command using the runners shell
+      - name: Run a one-line script
+        run: echo Hello, world!
+
+      # Runs a set of commands using the runners shell
+      - name: Run a multi-line script
+        run: |
+          echo Add other actions to build,
+          echo test, and deploy your project.
+
+
+
+
+name: CI ==> its name
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the "main" branch ==> This will trigger when we push or pull from the main it will automatically trigger
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+
+workflow_dispatch: It means if we want to run the workflow manually then we need to make use of this 
+
+Why we need workflow_dispacth ?
+
+Some time it may happen that thee is nothing to commit but we are facing some errors so to manually debug that we should make a provision of the workflow_dispacth(for manual intervention; it canot be create  on the run)
+
+jobs: The workflow can contain different jobs but here it contains only build job for now as its a simple workflow
+
+build: 
+  runs-on: ubuntu-latest  // This is called as runnner
+
+  Runners can be found in our repo like ==> Settings ==> side nav ==> Actions ==> Runner
+
+  Runner helps in the whatever commands we give via the Workflow where would it execute, it should be some container or server or container consiting of server(discuss in docker)
+
+
+  So we can provide the runner by 2 ways profoundly
+
+  1. Github Hosted Runner: It is Completely managed by github eg: windows-latest, ubuntu-20.04, macos-11
+  2. Self Hosted Runner
+
+
+  Whenever an event happens the jobs will run as defined in the workflow; and it would be running on the container or server on container which is provided by the runner. 
+
+
+
+  Under taht it will have steps like
+
+  # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v3
+
+      # Runs a single command using the runners shell
+      - name: Run a one-line script
+        run: echo Hello, world!
+
+      # Runs a set of commands using the runners shell
+      - name: Run a multi-line script
+        run: |
+          echo Add other actions to build,
+          echo test, and deploy your project.
+
+
+  steps: Now if we want to execute any steps on taht we need to checkout(visit) our repository and it will checkout at $GITHUB_WORKSPACE repo (aka our current repo)
+
+   - uses: actions/checkout@v3
+
+   so all the stuff will be stored under the actions/checkout@v3 [actions will be storesd in some location under the runner]  
+
+
+
+   -----------------------------------
+
+   let us go to the runner follow tis path   [Runners can be found in our repo like ==> Settings ==> side nav ==> Actions ==> Runner]
+    ==> add the linux runenr (as our current os is ubuntu)   
+    ==> Run all the commands below (Steps may change but adding it for reference)
+
+
+
+    Steps to follow are below
+
+    ^^^^^Download^^^^^^^^^
+    # Create a folder
+    $ mkdir actions-runner && cd actions-runner
+    
+    # Download the latest runner package
+    $ curl -o actions-runner-linux-x64-2.305.0.tar.gz -L https://github.com/actions/runner/releases/download/v2.305.0/actions-runner-linux-x64-2.305.0.tar.gz
+    
+    # Optional: Validate the hash
+    $ echo "737bdcef6287a11672d6a5a752d70a7c96b4934de512b7eb283be6f51a563f2f  actions-runner-linux-x64-2.305.0.tar.gz" | shasum -a 256 -c
+    
+    # Extract the installer
+    $ tar xzf ./actions-runner-linux-x64-2.305.0.tar.gz
+
+   ^^^^^^^Configure^^^^^^^^^^^^^^
+
+   ./config.sh --url https://github.com/adityadhopade/3-tier-app --token ALRGQDALITH3NQPABKKKHGDETV5XO
+
+   pops enter the name of the runner group : we do not have any runer group for now so just press enter
+
+   enetr name of the runner ==> aditya-runner
+
+   This runner will have the following labels: 'self-hosted', 'Linux', 'X64' 
+Enter any additional labels (ex. label-1,label-2):
+
+  so it will add those labels like self hosted , linux and the x64 and if we wanted to add more specific label we can add it now ==> do not need so press enter
+
+  √ Runner successfully added
+√ Runner connection is good
+
+# Runner settings
+
+Enter name of work folder: [press Enter for _work] 
+
+Here it is the folder where the source code will be checkout from the repo and stored into github runner => press enter
+
+
+In windows we may get pop upl ike 
+Would you like to run the runner as a service  
+
+If yes then it ruins a service
+If no then we would have to run this with the help of ./run.cmd
+
+
+Now just run this command
+
+   ./run.sh ==> It will start our runner
+
+But it will only get triggered when there is push or pull in the main branch so whaat we need to do is 
+
+just change the 
+
+on : ubuntu-latest  ==> to our label that we created i.e. either of the self-hosted, linux or X64
+
+
+Also before commiting change the name of the yml file as simple.yml
+
+commit it ==> so it will have now the folder structure .github/workflows/simple.yml
+
+
+Now we can see some chanegs in the Actions tab ==> Insider that recent commit name ==> build
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+########################################  END Day 17 ########################################
