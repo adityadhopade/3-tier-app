@@ -34,3 +34,25 @@ variable "web_server_name" {
   description = "name of the instance created as web server"
 
 }
+
+variable "inbound_rules_web" {
+  description = "ingress rules for security group of web server"
+  type = list(object({
+    port        = number
+    description = string
+    protocol    = string
+  }))
+
+  default = [{
+    port        = 22
+    description = "This is for the ssh connection here"
+    protocol    = "tcp"
+    },
+    {
+      port        = 80
+      description = "This is for the webshoting connection"
+      protocol    = "tcp"
+  }]
+}
+
+

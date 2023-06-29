@@ -12,26 +12,18 @@ resource "aws_instance" "this" {
 }
 
 resource "aws_security_group" "this" {
-  name        = "allow_tls"
-  description = "Allow TLS inbound traffic"
+  name        = "allow_webserver"
+  description = "Allow web traffic"
   vpc_id      = aws_vpc.this.id
-
-  ingress {
-    description = "TLS from VPC"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = [aws_vpc.this.cidr_block]
-
-  }
-
-  ingress {
-    description = "TLS from VPC"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = [aws_vpc.this.cidr_block]
-
+  dynamic "ingress" {
+    for_each = var.inbound_rules_web
+    content {
+      description = ingress.value.description
+      from_port   = ingress.value.port
+      to_port     = ingress.value.port
+      protocol    = ingress.value.protocol
+      cidr_blocks = [aws_vpc.this.cidr_block]
+    }
   }
 
   egress {
@@ -42,6 +34,6 @@ resource "aws_security_group" "this" {
   }
 
   tags = {
-    Name = "webserver"
+    Name = "allow_webserver"
   }
 }

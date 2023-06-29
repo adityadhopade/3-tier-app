@@ -16,7 +16,7 @@ STS [Secure Token Service] in AWS ; It is used to generate a token for the short
 It gives access key; secret key and Session Token generation is provided with the expiration date
 
 
- Commands followed during the creation of Secure Token Service execution is as follows
+Commands followed during the creation of Secure Token Service execution is as follows
  
 1. create a user "stsuser" with no permissions --> no policy attached --> add it to the aws credentials file with the same profile name 	 
   aws configure --profile stsuser
@@ -1330,3 +1330,166 @@ egress represnt all the outbound rules and it should be for all the traffic.
   
 
 ################################### END DAY 15 ################################################
+
+################################### DAY 16 ################################################
+As we need to have the less repetetion of the code and to make it more usable in this so wht we needed to do is taht we should make use of some reuable componmenet 
+
+Extension needed "GlassIt-VSC" to add: Press ctrl+alt+z to increase the transparency, ctrl+alt+c to decrease.
+
+We make use of  Dynamic Block in it 
+
+1. Dynamic block is supported inside the Data, Povider Block and Provisoner Block
+2. It acts as the for loop but it produces nested blocks. Note: For loop cannot be running the nested blocks.
+
+Some formatting in the dynamic block
+ It has keywod dynamic "name_of_provider_obhject" aand inside it it has the for-each loop contianing list/map/set
+NOTE: Generally we cannot provide the value of list type of value to for_each but it is valid in the case of the dynamic block
+
+Iterator is an optional argument;  if not provided explicitly then the block name is considered as the iterator name
+
+BEST PACTICES for DYNAMIC BLOCK:
+
+1. Not overuse Dynamic blocks
+2. Minimise use of Dynamic blocks
+3. Not to complex the use of the Dynamic Block with multiple levels of Dynamic Blocks chains
+
+
+Adding it like in the webserver.tf
+  dynamic "ingress" {
+    for_each = var.inbound_rules_web // define it in the variables.tf  
+  }
+
+  Now as per our discussion lets try to make all the fields like the description and to port from pprt also variables (as they will be changing) so just add it into the variables.tf file
+
+  All the fields needed are having some different dataypes needed like
+
+  {
+    port = number
+    description = string
+    protocol = string
+    cidr_block = list(string)
+  }
+
+  Do we have any datatype which can enclsoe them all ? ++> Yes, map(object)({})
+
+  so what he datatype would look like is this 
+
+  type = map(object)({
+    port = number
+    description = string
+    protocol = string
+    cidr_block = list(string)
+  })
+
+  so adding it up on the variable will look like 
+
+  variable "inbound_rules_web" {
+  description = "ingress rules for security group of web server"
+  type = map(object({
+    port = number
+    description = string
+    protocol = string
+    cidr_block = list(string)
+  }))   
+}
+
+or we could also have the list | map| set in place of the  type = map(object({})) | type = list(object({}))  | type = type = set(object({}))
+
+we can easily make a chaneg like 
+  variable "inbound_rules_web" {
+  description = "ingress rules for security group of web server"
+  type = list(object({
+    port = number
+    description = string
+    protocol = string
+    cidr_block = list(string)
+  }))   
+}
+
+Q. What if we dont know the Datatype which si needed then what can we do here in such case ?
+we could make the use of the list(any({})) as the Datatype
+
+Also what could be the default should be added to it and it can be done as follows like in variable.tf
+
+  default = [ {
+    port = 22
+    description = "This is for the ssh connection here"
+    protocol = "tcp"
+  }] 
+
+  As we have not implemeneted the load balancer till now so we cannot make use of the cidr_block so we can just generally add it by tghe help of the cidr_block value access with webserver.tf so remove the fiels from the 
+
+    variable "inbound_rules_web" {
+      description = "ingress rules for security group of web server"
+      type = list(object({
+        port = number
+        description = string
+        protocol = string
+        cidr_block = list(string) [Remove this field]
+    }))   
+}
+
+Q How to add the 2nd block here for 2nd port?
+We can ad just like this
+  default = [ {
+    port = 22
+    description = "This is for the ssh connection here"
+    protocol = "tcp"
+  },
+  {
+    port = 80
+    description = "This is for the webshoting connection"
+    protocol = "tcp"
+  } ]
+
+  Now getting on with the dynamioc block and making it work like
+  
+  after the for_each loop add the content{} block and just add all the field details like
+
+    content {
+      description = var.inbound_rules_web.description
+      from_port   = var.inbound_rules_web.port
+      to_port     = var.inbound_rules_web.port
+      protocol    = var.inbound_rules_web.protocol
+      cidr_blocks = [aws_vpc.this.cidr_block]
+    }
+
+
+    But will this works while iterating through the port values ??
+    It will pop  error as it would be confused which description to print 
+    for this var.inbound_rules_web.description
+
+    So making the use of the fo_each = var.inbound_rules_web
+
+    from_port   = each.value.port
+    to_port   = each.value.port
+    protocol    = each.value.protocol
+    
+    But adding description as description = each.value.description
+    But it will not work here beccause error pops
+
+    │ A reference to "each.value" has been used in a context in which it is unavailable, such as when the configuration no longer contains the value in its
+│   "for_each" expression. Remove this reference to each.value in your configuration to work around this error.
+
+The for_each is stored as a whole and we cannot just log into it simply by providing the each.value.description
+
+ what to do in such case just make ue of the iterators in the dynamic block
+
+ ==> So the name of the block can act as the iterator variable by default so we need it add it as like that
+
+description = each.value.description  ==> description = ingress.value.description
+
+and so on 
+      description = ingress.value.description
+      from_port   = ingress.value.port
+      to_port     = ingress.value.port
+      protocol    = ingress.value.protocol
+
+
+
+W can use the dynamic server here in egreess as well (but not done)
+
+
+
+
+################################### END DAY 16 ################################################
