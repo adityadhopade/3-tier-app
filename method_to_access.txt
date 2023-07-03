@@ -1741,8 +1741,116 @@ commit it ==> so it will have now the folder structure .github/workflows/simple.
 
 Now we can see some chanegs in the Actions tab ==> Insider that recent commit name ==> build
 
+-------------------------------------
+
+Terraform refresh ==> It is depricated
+
+We do not need to make use of it ==> A s when we do the terraform apply it automatically refreshes the state file befor applying it
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 
 ########################################  END Day 17 ########################################
+
+########################################   Day 18 ########################################
+
+Created a Bastion host block to connect to a private network.
+-Created web.sh block for shell scripting for web server configuration
+-Created Local provisioner in bastion host block to automate the public access by using ssh
+
+--------------------
+As far as now we  need to cretae a web application on the web server.
+
+It can be done by the 3 ways they are as follows: 
+
+1. AWS provides a feature in it so that we can add all our commands on the user data block.
+We can see it 2hile creating the EC2 instacne ==> Advance Details ==> User Data Text Area here we can add all our commands /file and it would be encrypted in base64
+
+
+2. we can pass the user_data a shell script file it will contain the different part of it.
+so we need to create a user_data.sh file and it will have akll the steps to launch a server
+
+#! /bin/bash    
+
+#! ==> Indicates if you are giving a script file in linux in that we provide with #! and path is provided
+Here as we are wanting to use the nash script we need to provide their path where the binary is located os we needed to add it as the /bin/bash
+
+/bin/bash ==> Location of bash
+
+eg for python it would act as ==> #! /bin/python3
+
+
+As here we are going to use the Amazon linux it comes under the fedora distribution so we needed to make use of the yum package installler.
+
+Now we need to install a web server take Apache but in the fedora distribution apache comes with the package "httpd"
+
+So in case of fedora its ==>  yum install httpd
+In the case of Ubuntu it is ==> apt install apache2 (latest version)
+
+
+
+Now we need to enable the service by ==> sudo systemctl enable httpd
+Now we need to start the service by ==> sudo systemctl start httpd
+
+Then to check wheather our web server is working or not we can make use of the echo command with the tee command
+
+sudo echo '<h1>Hey there! Welcome to the web server</h1>' | sudo tee /var/html/index.html 
+
+tee command reads the standard input and writes it to both the standard output and one or more files. The command is named after the T-splitter used in plumbing. It basically breaks the output of a program so that it can be both displayed and saved in a file. It does both the tasks simultaneously, copies the result into the specified files or variables and also display the result.
+
+sudo echo '<h1>Hey there! Welcome to the web server</h1>' 
+
+and add to the | sudo tee /var/html/index.html 
+
+
+so how can we add it into the webserver.tf under the field user_data
+
+We can add it as following ]
+
+user_data {
+// All the script we added in the user_data.sh but it leads to duplication and will not look as good practice
+
+}
+
+We need to make use of the file function in terraform
+
+file function reaads the content of the given path and returns them as a string
+
+[Complex topic can be easily understand by module]
+
+Need to make use of it like file("${path.module}/hello.txt")
+
+${path.module} ==> To explain this 
+
+Whatever we have written till now we can make it as the module and adding a main.tf file which consumes the module then the main.tf will acts as the root folder now. and the module will become child
+
+root => main.tf
+child ==> all the rest files (modules)
+
+And if we are givig the ${path.module} to the main.tf ==> It means we are referencing to the same current location denoted by .
+
+If we are providing in module in some file by ${path.module} it will give us the relative path betwen the module and the main.tf
+
+so now we can put it as the  user_data = file("${path.module}/user_data.sh")
+--------
+After doing this we need to verify taht can we directly connect to the webserver present in the private subnet ?
+
+We can connect via the Bastion Host but not directly
+
+
+-----
+Also for the key field check if the key is available or not (usig the already created ultimate-cicd-pipeline.pem)
+
+-----
+
+For the lock happenming on the we can terraform plan make the use of
+
+1. creating a new bucket ==> terraformstatefiles3backendpart2
+2. adding it to our provider.tf file 
+3. deleting the terafrom provider folder
+4. run terraform init
+
+
+
+########################################  END Day 18 ########################################

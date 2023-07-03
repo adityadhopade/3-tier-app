@@ -9,6 +9,7 @@ resource "aws_instance" "this" {
   }
 
   vpc_security_group_ids = [aws_security_group.this.id]
+  user_data              = file("${path.module}/user_data.sh")
 }
 
 resource "aws_security_group" "this" {
