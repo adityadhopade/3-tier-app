@@ -18,7 +18,7 @@ terraform {
 
 provider "aws" {
   # Configuration options
-  profile = "terraform"
+  profile = "default"
   assume_role {
     role_arn     = "arn:aws:iam::972348856143:role/stsassumerole"
     session_name = "stsrole"
