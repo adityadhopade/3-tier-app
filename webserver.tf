@@ -1,4 +1,4 @@
-resource "aws_instance" "this" {
+resource "aws_instance" "web" {
   ami           = "ami-022e1a32d3f742bd8"
   instance_type = "t2.micro"
   key_name      = "ultimate-cicd-pipeline"
