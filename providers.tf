@@ -8,19 +8,20 @@ terraform {
   }
 
   backend "s3" {
-    bucket         = "terraformstatefiles3backendpart2"
+    bucket         = "terraformstatefiles3newbackend"
     key            = "terraform-state-file-june-23"
     region         = "us-east-1"
-    role_arn       = "arn:aws:iam::972348856143:role/stsassumerole"
-    dynamodb_table = "terraformstatetable"
+    role_arn       = "arn:aws:iam::869190274350:role/stsassumerole"
+    dynamodb_table = "terraformnewstatetable"
   }
 }
 
 provider "aws" {
   # Configuration options
-  profile = "default"
+  # profile = "default"
+  region = "us-east-1"
   assume_role {
-    role_arn     = "arn:aws:iam::972348856143:role/stsassumerole"
+    role_arn     = "arn:aws:iam::869190274350:role/stsassumerole"
     session_name = "stsrole"
   }
 }

@@ -1,7 +1,7 @@
 resource "aws_instance" "web" {
   ami           = "ami-022e1a32d3f742bd8"
   instance_type = "t2.micro"
-  key_name      = "ultimate-cicd-pipeline"
+  key_name      = "new-ultimate-cicd"
   subnet_id     = element([for each_subnet in aws_subnet.private_subnet : each_subnet.id], 1)
 
   tags = {
