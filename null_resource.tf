@@ -12,9 +12,9 @@ resource "null_resource" "provisioner" {
     private_key = file("${path.module}/../../Downloads/new-ultimate-cicd.pem")
   }
 
-  provisioner "local-exec" {
-    command = "scp -o StrictHostKeyChecking=no -i  ~/Downloads/new-ultimate-cicd.pem ~/Downloads/new-ultimate-cicd.pem ec2-user@${aws_instance.bastion.public_ip}:~"
-  }
+#   provisioner "local-exec" {
+#     command = "scp -o StrictHostKeyChecking=no -i  ~/Downloads/new-ultimate-cicd.pem ~/Downloads/new-ultimate-cicd.pem ec2-user@${aws_instance.bastion.public_ip}:~"
+#   }
 
   provisioner "remote-exec" {
     inline = [
@@ -22,10 +22,10 @@ resource "null_resource" "provisioner" {
     ]
   }
 
-#   provisioner "file" {
-#     source      = "~/Downloads/new-ultimate-cicd.pem" # where do you want to fetch the file from
-#     destination = "/home/ec2-user/mykey"              # to what destination we want the file to be taken to
-#     content     = file("${path.module}/../../Downloads/new-ultimate-cicd.pem")
-#   }
+  #   provisioner "file" {
+  #     source      = "~/Downloads/new-ultimate-cicd.pem" # where do you want to fetch the file from
+  #     destination = "/home/ec2-user/mykey"              # to what destination we want the file to be taken to
+  #     content     = file("${path.module}/../../Downloads/new-ultimate-cicd.pem")
+  #   }
 
 }

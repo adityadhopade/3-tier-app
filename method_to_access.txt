@@ -2290,4 +2290,46 @@ We would provide the public key to the aws that aws would use for the instance c
 Also for the credentails management we can use the Vault as the storage for it.
 
 
+But for the above we can manage it by doing 
+ssh-keygen
+
+add the cureent folder path as we want to generate the file into our local folder first and give it some name as "keypair"
+
+Then it will generate the keypair.pub (public key) and keypair (private key) & search for the "aws_key_pair in terraform" and copy this and add a file named as key_file.tf
+
+resource "aws_key_pair" "deployer" {
+  key_name   = "deployer-key"
+  public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQD3F6tyPEFEzV0LX3X8BsXdMsQz1x2cEikKDEY0aIj41qgxMCP/iteneqXSIFZBp5vizPvaoIR3Um9xK7PGoW8giupGn+EPuxIA4cDM4vzOqOkiMPhz5XK0whEjkVzTo4+S0puvDZuwIsdiW9mxhJc7tgBNL0cYlWSYVkz4G/fslNfRPW5mYAM49f4fhtxPb5ok4Q2Lg9dPKVHO/Bgeu5woMc7RY0p1ej6D4CKFE6lymSDJpW0YHX/wqE9+cfEauh7xZcG0q9t2ta6F6fmX0agvpFyZo8aFbXeUBr7osSCJNgvavWbM/06niWrOvYX2xwWdhXmXSrbX8ZbabVohBK41 email@example.com"
+}
+
+
+But after adding taht we need to make sure taht we are adding it into our aws or terraform script we can do it by replacing key name in the web_server.tf
+
+key_name = var.key_name
+
+--------------------------
+
+Also we needed to make sure that we are replacing the earlier generated private key with the newly created private key
+---------------------------------
+There is one another way to configure our server
+
+1st way: pass the user_data vai the user_data.sh file.
+2nd way: Creating custom AMI resource and from that creating the web resources.(used in Realtime)
+
+--------------------------------------------
+
+Creating Custom AMI ==> They are genreally used as best practice and the industry standard based on guard rails, different security measeures and muliple things.
+
+Eg==> if we want to use the resource conatining the jenkins and ansible the most trivial way would be just creating instances and then adding the setup for those applcations but it will take lots of time and efforts. 
+
+So it is better to launch the Custom images AMI's and these prebuild AMI's are consisting of all the standards available as defined by the organizations so such images are called as the "Golden Images"
+
+Golden Images = Vanilla Images (Pre existing images) + install requirements and Security measures, standards of organizations
+
+In the AWS it can be build with the help of the "EC2 Image Builder" but it is validfor the AWS only
+But with the help of terraform we can build it for the multiple clouds as its "Cloud Agnostic". with the help of "Packer"
+
+Packer => product of Hashicorp used for the iamge building 
+
+
 ########################################  END Day 19 ########################################
