@@ -2153,7 +2153,7 @@ we can also make use of ssh -o StrictHostKeyChecking=no -i new-ultimate-cicd.pem
 ------------------------
 
 But as we are making chnages in the provisoiner commands will it also make a change when done terraform apply ?
-Ideally it should but it will not do it beacause provuisoner only runs when you apply it
+Ideally it should but it will not do it beacause provuisoner only runs when you apply it i.e. during the 1st terraform init only
 
 Cant we make sure that it will run the content of the proviosioner everytime whenevr we make he changes ?
 Yes there is making use of Null Resource
@@ -2216,11 +2216,78 @@ triggers {
 
 also copy the provisoner here so we can take a look at the difference of what it makes
 
+  provisioner "local-exec" {
+    command = "scp -o StrictHostKeyChecking=no -i  ~/Downloads/new-ultimate-cicd.pem ~/Downloads/new-ultimate-cicd.pem ec2-user@${self.public_ip}:~"
+  }
+
+But it will not run beacuse it pops the error and it is beacuse it cannot get the public_ip of the address in there. So we need to pass the full path to the resource like
+
+  provisioner "local-exec" {
+    command = "scp -o StrictHostKeyChecking=no -i  ~/Downloads/new-ultimate-cicd.pem ~/Downloads/new-ultimate-cicd.pem ec2-user@${aws_instance.bastion.public_ip}:~"
+  }
+
+It will work 
+
+Also we wanted to have make changes to the permission of the key file ==>  chmod 400 <pemkey> . It can be done with the help of the remote exec
+
+so we can define the remote_exec proviosner as following in null_resource.tf
+
+provisioner "remote-exec" {
+  inline = [
+    "chmod 400 test.pem"
+  ]
+}
+
+But for that to work we need to establish a "connection block" as it provides that how we want to connect to the remote server using this.
+
+connection {
+  host = aws_instance.bastion.public_ip # as we need to pass the host public ip address(bastion in our case) and it takes it using this 
+  type = ssh
+  user = "ec2-user"
+  private-key = file("${path.module}/../../Downloads/new-ultimate-cicd.pem")
+}
+  we are using the private key beacuse as its not available locally n our codebase so to make a reference to the file we can make use of it.
+  file function what it does it whatever is in the file it considers it in the form of string
+---------------------------------------
+
+NOTE: In the initial connection which are provided via the providers it may give the ssh connection timeout  
+
+re run the terraform in taht case 
+
+--------------
+we can ad the depends_on block in our case so taht if the resource is completely up and running then only it will run the null resource in the null_resource.tf
+
+depends_on = [aws_instance.bastion]
+
+--------------------------
+
+We can alos add another type of the provisoner like file provisioner
+
+provisioner "file" {
+  source = "~/Downloads/new-ultimate-cicd.pem" # where do you want to fetch the file from
+  destination = "/home/ec2-user/mykey" # to what destination we want the file to be taken to
+
+  Also we could add a field like "content" inplace of the source interanlly runs same scp commands to copy the conent from source to destination
+
+  content = file("${path.module}/../../Downloads/new-ultimate-cicd.pem")
+}
 
 
-  ---------------------------
-  
+So this is all about the null resource and the provisoners
+---------------------------
 
+We wanted to create our own key file instead of the key-file(.pem file) provided by the aws can it be done ?
+
+Yes it can be done with the help of the git ==. using the ssh keygen
+
+Using the ssh keygen it establsihes both the Public and the Private key 
+
+Advantages of using the public key i that even if anybody got access to your public key they cannot access our resources directly we need to provide the private key with it always.
+
+We would provide the public key to the aws that aws would use for the instance creation and private key will kept to ourselves
+
+
+Also for the credentails management we can use the Vault as the storage for it.
 
 
 ########################################  END Day 19 ########################################
