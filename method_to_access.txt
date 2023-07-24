@@ -1850,7 +1850,377 @@ For the lock happenming on the we can terraform plan make the use of
 2. adding it to our provider.tf file 
 3. deleting the terafrom provider folder
 4. run terraform init
+-------------------
 
+bastion_host.tf
+
+resource "aws_instance" "bastion" {
+  ami           = "ami-022e1a32d3f742bd8"
+  instance_type = "t2.micro"
+  key_name      = "ultimate-cicd-pair"
+  subnet_id     = element([for each_subnet in aws_subnet.public_subnet : each_subnet.id], 0)
+
+  tags = {
+    Name = local.bastion_host
+  }
+
+  vpc_security_group_ids = [aws_security_group.bastion_host.id]
+  user_data              = file("${path.module}/user_data.sh")
+}
+
+resource "aws_security_group" "bastion_host" {
+  name        = "allow_bastion_host"
+  description = "Allow ssh into the private subnet resources using this"
+  vpc_id      = aws_vpc.this.id
+
+  ingress {
+    description = "Allow the ssh traffic to private subnet bastion host from private subnet"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "allow_bastion_host_security"
+  }
+}
+
+
+
+locals.tf
+
+locals {
+  vpc_name_local = "${var.vpc_name}-lwplabs"
+  web_server     = "${var.web_server_name}-terraform"
+  bastion_host   = "${var.vpc_name}-bastion-host"
+}
+
+
+
+
+
+Text Written
+
+-----------------------------------------------
+
+Can anybody outside can connect with application server which is present on the private subnet directly ??
+
+No they cannot they can only connect via the help of the bastion host even if they try to connect the NAT Gateway obstructs the user and do not allow to access the application server.
+
+----------------------------------------------------
+
+What is the need of the bastion Host(Jump Servers) ?
+
+in the running server there some error may be coming and we want to verify eg suppose there is a ddos attack, we want to trash the ips nad want to check the error logs, so we need them to trouble shoot at realtime by using the jumop server or bastion host
+---------------
+Add a bastion_host.tf file here
+-------------------
+here copy the template code from the webserver.tf file and make some changes as follows
+
+resource "aws_instance" "bastion" {
+  ami           = "ami-022e1a32d3f742bd8"
+  instance_type = "t2.micro"
+  key_name      = "ultimate-cicd-pair"
+  subnet_id     = element([for each_subnet in aws_subnet.public_subnet : each_subnet.id], 1)
+
+  tags = {
+    Name = local.bastion_host
+  }
+
+  vpc_security_group_ids = [aws_security_group.this.id]
+  user_data              = file("${path.module}/user_data.sh")
+}
+
+resource "aws_security_group" "this" {
+  name        = "allow_webserver"
+  description = "Allow web traffic"
+  vpc_id      = aws_vpc.this.id
+  dynamic "ingress" {
+    for_each = var.inbound_rules_web
+    content {
+      description = ingress.value.description
+      from_port   = ingress.value.port
+      to_port     = ingress.value.port
+      protocol    = ingress.value.protocol
+      cidr_blocks = [aws_vpc.this.cidr_block]
+    }
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "allow_webserver"
+  }
+}
+
+Here we also needed to add the custiom security group as we do want the restricted accesss to it
+
+resource "aws_security_group" "bastion_host" {
+  name        = "allow_bastion_host"
+  description = "Allow ssh into the private subnet resources using this"
+  vpc_id      = aws_vpc.this.id
+
+  ingress {  // Do not need the dynamic block here as we only neeed one port here for ssh (22)
+    description = "Allow the ssh traffic to private subnet bastion host from private subnet"
+    from_port = 22
+    to_port = 22
+    cidr_blocks = ["0.0.0.0/0"]  // to allow all traffic
+  }
+
+} 
+
+
+here are all the cahnegs that we have made to the bastion_host.tf file 
+
+resource "aws_instance" "bastion" {
+  ami           = "ami-022e1a32d3f742bd8"
+  instance_type = "t2.micro"
+  key_name      = "ultimate-cicd-pair"
+  subnet_id     = element([for each_subnet in aws_subnet.public_subnet : each_subnet.id], 1)
+
+  tags = {
+    Name = local.bastion_host
+  }
+
+  vpc_security_group_ids = [aws_security_group.bastion_host.id]
+  user_data              = file("${path.module}/user_data.sh")
+}
+
+resource "aws_security_group" "bastion_host" {
+  name        = "allow_bastion_host"
+  description = "Allow ssh into the private subnet resources using this"
+  vpc_id      = aws_vpc.this.id
+
+  ingress {
+    description = "Allow the ssh traffic to private subnet bastion host from private subnet"
+    from_port   = 22
+    to_port     = 22
+    cidr_blocks = ["0.0.0.0/0"]
+    protocol = "tcp"
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "allow_bastion_host_security"
+  }
+}
+
+so what we need is to to try to access the bastion host are we able to reach it via ssh.
+
+For that we need to do is 
+
+ssh -i <location of the pem file> ec2-user@<public_ip_ofec2_instance>
+
+in our case its ssh -i ~/lwplabs/access_keys/key_pairs/ultimate-cicd-pair.pem ec2-user@
+
+ssh -i ~/lwplabs/access_keys/key_pairs/ultimate-cicd-pair.pem ec2-user@ec2-44-204-57-128.compute-1.amazonaws.com
+
+
+NOTE: We need to modify our public and the private subnets and add it a field like 
+map_public_ip_on_launch= true
+
+and ensure that the coreect key is passed to basttion host and the web server
+
+------------------------------
+can we connect directly to the web server via bastion host ?
+
+Yes we need to pass the key to it first
+
+Firstly try logging in bastion host ssh -i ~/Downloads/new-ultimate-cicd.pem ec2-user@3.236.29.67
+
+Q .Then can we connect application server via bastion host using public ip ?
+NO we cannot we need to make use of the private ip address
+
+ssh 10.0.0.46 (No need to pass the user as its already considered)
+
+Q. but it will also not connect to application server now WHY ?
+It denies it because 
+Because we need key file(new-ulimate-cicd.pem) here 
+
+-----------------------------------------
+
+How can we pass the public key to the server ?
+
+We can do it using the scp like below
+
+scp -i  ~/Downloads/new-ultimate-cicd.pem ~/Downloads/new-ultimate-cicd.pem ec2-user@3.236.29.67
+
+This will copy it but will not work below
+
+scp -i  ~/Downloads/new-ultimate-cicd.pem ~/Downloads/new-ultimate-cicd.pem ec2-user@3.236.29.67:~
+
+chmod 400 new-ultimate-cicd.pem
+--------------
+As we have the pem file in the bastion host then can we connect to the app server ?
+
+ssh -i new-ultimate-cicd.pem ec2-user@10.0.0.46
+
+we can also do it like ssh -i new-ultimate-cicd.pem 10.0.0.46 (As the user for both the bastion host and the web server is the same)
+
+Now we need to make sure that we are connecting to the web server 
+
+make use of the => curl localhost
+
+not works and not connects
+
+As we have made a mistake in the user.sh file in the command sudo teee ==> should be sudo tee ; so we need to make sure that the process id in the background gets killed and start from scratch
+
+use => sudo rm /var/cache/dnf/metadata_lock.pid
+
+----------------
+
+Now we need to make sure that our Private route table consists of the right entries in it we needed to make sure of there is some route fo the NAT Gateway
+
+As there is no route added at the private route table so we need to have in the network.tf
+
+route {
+  cidr_block = "0.0.0.0/0" ==> it should allow all traffic as it internet facing id
+  nat_gateway_id = aws_nat_gateway.this.id => to fetch the nat gateway id
+}
+
+
+Then again ty connecting to the web server
+
+ssh -i ~/Downloads/new-ultimate-cicd.pem ec2-user@publicip-address
+ssh -i new-ultimate-cicd.pem <private ip addreess of app>
+curl localhost
+<Addd commands from .sh file>
+sudo yum update -y
+sudo yum install httpd 
+sudo systemctl enable httpd
+sudo systemctl start httpd
+
+sudo systemctl status httpd
+
+But we need to make sure we are automating this process taht we have followed through the above commands
+
+So we need to make sure that we are using the "Provisoner" in Terraform
+
+Proviosiners: Provisioners are used to execute scripts on a local or remote machine as part of resource creation or destruction. Provisioners can be used to bootstrap a resource, cleanup before destroy, run configuration management, etc.
+
+Whatever we write in the proviosners will be executed as soon as the resources is created.
+
+So we will be using the proviosner in the bastion_host.tf 
+
+NOTE: We should be using the proviosner as the last resort as it make s the terraform configuration complex.(Not recommended to use it)
+
+provisioner "local-exec" {
+  command = "scp -i  ~/Downloads/new-ultimate-cicd.pem ~/Downloads/new-ultimate-cicd.pem ec2-user@3.236.29.67:~"
+}
+
+But the public ip can change if instances are stopped and staretd again then what we needed to do ?
+
+provisioner "local-exec" {
+  command = "scp -i  ~/Downloads/new-ultimate-cicd.pem ~/Downloads/new-ultimate-cicd.pem ec2-user@${self.public_ip}:~"
+}
+
+
+If we do not need a pop up to add the fingerprint from the next time then we can just modify our command as 
+
+  provisioner "local-exec" {
+    command = "scp -o StrictHostKeyChecking=no -i  ~/Downloads/new-ultimate-cicd.pem ~/Downloads/new-ultimate-cicd.pem ec2-user@${self.public_ip}:~"
+  }
+
+Also we need to make sure that the coreect permisiions are passed to the pem key file s so we can make use of the resources "remote-exec" 
+
+ssh -o StrictHostKeyChecking=no -i new-ultimate-cicd.pem 10.0.0.46
+
+remote-exec to be used when once the resource is created and we want to make use of some commands then the remote-exec comes in handy eg changing the permissions for the pem file.
+
+we can also make use of ssh -o StrictHostKeyChecking=no -i new-ultimate-cicd.pem 10.0.0.46 while logging in the app server from the bastion host
+
+
+
+------------------------
+
+But as we are making chnages in the provisoiner commands will it also make a change when done terraform apply ?
+Ideally it should but it will not do it beacause provuisoner only runs when you apply it
+
+Cant we make sure that it will run the content of the proviosioner everytime whenevr we make he changes ?
+Yes there is making use of Null Resource
+
+Null Resource ==> DAY 19
+
+
+How to use the reverse search in linux ?
+ctrl + R => search for the term 
 
 
 ########################################  END Day 18 ########################################
+
+########################################  Day 19 Null Reosurces ########################################
+
+There are multiple kind of supporting providers which could perform a following task like eg To generate a random number there is resource for it random provider (acts like built in functions for the terraform configuration for enchancing code and making it efficient)
+
+Random proviosioner can be used to make the passwords like for the auto generated passwords.
+
+
+Null Reource ==> 
+
+we have to make  sure that they need to be added provider into the resource required_providers of provider.tf as 
+
+  null = {
+    source  = "hashicorp/null"
+    version = "3.2.1"
+  }
+
+NOTE: It is not recommended to have a ll the terraform plugins in the same configuration here. As if one provider breaks then it will compromise the other resources adn as the tf state file acts as the single source of truth then it will definately be a hasle to resolve.
+
+---------------
+for the above reason create the null_Resource.tf file and add the sample text from the documentation of null_Resource
+
+resource "null_resource" "provisoner" {
+  # Changes to any instance of the cluster requires re-provisioning
+  triggers = {  # when do you want to run this resource
+    cluster_instance_ids = join(",", aws_instance.cluster.*.id)
+  }
+
+  # Bootstrap script can run on any instance of the cluster
+  # So we just choose the first in this case
+  connection {
+    host = element(aws_instance.cluster.*.public_ip, 0)
+  }
+
+  provisioner "remote-exec" {
+    # Bootstrap script called with private_ip of each node in the cluster
+    inline = [
+      "bootstrap-cluster.sh ${join(" ",
+      aws_instance.cluster.*.private_ip)}",
+    ]
+  }
+}
+
+we want the trigger to run at at each run of terraform apply 
+triggers {
+  always_run = timestamp()  // always run for each timestamp as when we run the terraform apply then it will have a different timestamp at each terraform apply
+}
+
+also copy the provisoner here so we can take a look at the difference of what it makes
+
+
+
+  ---------------------------
+  
+
+
+
+########################################  END Day 19 ########################################

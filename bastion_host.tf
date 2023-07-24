@@ -4,6 +4,11 @@ resource "aws_instance" "bastion" {
   key_name      = "new-ultimate-cicd"
   subnet_id     = element([for each_subnet in aws_subnet.public_subnet : each_subnet.id], 1)
 
+  provisioner "local-exec" {
+    command = "scp -o StrictHostKeyChecking=no -i  ~/Downloads/new-ultimate-cicd.pem ~/Downloads/new-ultimate-cicd.pem ec2-user@${self.public_ip}:~"
+  }
+
+
   tags = {
     Name = local.bastion_host
   }
