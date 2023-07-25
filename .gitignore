@@ -3,3 +3,5 @@
 *.out
 *.tfstate
 *.backup
+# keypair
+# key_pair.pub

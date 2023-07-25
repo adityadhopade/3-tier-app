@@ -2333,3 +2333,299 @@ Packer => product of Hashicorp used for the iamge building
 
 
 ########################################  END Day 19 ########################################
+
+########################################  Day 20 Packer ########################################
+
+Packer: So packer helps us to create the golden images which are nothing but the AMI images with preinstalled conifgurations and the best security practices of Orgamziations
+
+----------------------
+To implement the packer in that we need to have the image builder folder
+
+We would need to configure the provider plugin like "provider.pkr.hcl" 
+Here the .pkr.hcl acts as an extension for the packer
+
+
+take the sample packer template from the https://developer.hashicorp.com/packer/plugins/builders/amazon  => Amazon EC2 => Builders ==> Overview
+
+packer {
+  required_plugins {
+    amazon = {
+      version = ">= 1.2.6"
+      source = "github.com/hashicorp/amazon"
+    }
+  }
+}
+
+Then we will be writing our file for the image creation. like => "ami.pkr.hcl"
+
+Now we can have different typoe of storages for the packer AMI's 
+
+1. amazon-ebs (elastic block storage) It is persisten volumne
+2. amazon-insatnce (Its an ephermaeral storage; it gets deletedas soon as instance gets terminated)
+3. amazon-chroot Create EBS-backed AMIs from an existing EC2 instance by mounting the root device and using a Chroot environment to provision that device [Quite Advance but the fastest way to build an AMI since no new EC2 instance needs to be launched.]
+4. amazon-ebssurrogate Create EBS -backed AMIs from scratch. Works similarly to the chroot builder but does not require running in AWS. This is an advanced builder and should not be used by newcomers.
+
+The packer and terraform shares the same language HCL (HashiCorp Language).
+
+In packer we can write both in the HCL and json as they both are supported here.
+
+---------------------------------------------------
+
+Copy the basic sample code from this link https://developer.hashicorp.com/packer/plugins/builders/amazon/ebs#basic-example and add it to the ami.pkr.hcl
+
+source "amazon-ebs" "basic-example" {
+  access_key = var.aws_access_key
+  secret_key =  var.aws_secret_key
+  region =  "us-east-1"
+  source_ami =  "ami-fce3c696"
+  instance_type =  "t2.micro"
+  ssh_username =  "ubuntu"
+  ami_name =  "packer_AWS {{timestamp}}"
+}
+
+build {
+  sources = [
+    "source.amazon-ebs.basic-example"
+  ]
+}
+
+
+Just like the datasource in the terraform we have here the source block 
+
+source block contains the base image taht we will be using
+
+---------------
+
+source "amazon-ebs" "basic-example" {
+  access_key = var.aws_access_key
+  secret_key =  var.aws_secret_key
+  region =  "us-east-1"
+  source_ami =  "ami-fce3c696"
+  instance_type =  "t2.micro"
+  ssh_username =  "ubuntu"
+  ami_name =  "packer_AWS {{timestamp}}"
+}
+
+In the source block we have the access key and secret key but we can also access the user by using the assume role in the ami.pkr.hcl file
+
+so we can add it as follows
+
+source "amazon-ebs" "basic-example" {
+  assume_role{
+    role_arn     = "arn:aws:iam::869190274350:role/stsassumerole"
+  }
+  region =  "us-east-1"
+  source_ami =  "ami-fce3c696"
+  instance_type =  "t2.micro"
+  ssh_username =  "ubuntu"
+  ami_name =  "packer_AWS {{timestamp}}"
+}
+
+We can change the other fields as follows like 
+
+  region =  var.region
+  source_ami =  var.image_id
+  instance_type =  var.instance_type
+  ssh_username =  var.ssh_user_name
+  ami_name = local.image_name
+
+  add the local block in the same context as 
+
+  locals{
+    image_name = ${var.app_name}-packer"
+  }
+
+------------------------------------
+Add another file for the variables taht we are using here. variables.pkr.hcl
+
+variable region{
+    description = "Provides the AWS Region"
+    type= "string"
+    default = "us-east-1"
+}
+
+
+variable image_id{
+    description= "Provides the AWS AMI id specified in region"
+    type= "string"
+    default = ""
+}
+
+We can also make use of the data_source here in packer to make it more dynamic ==> Add a file "data.pkr.hcl" for that and copy the snippet from the https://developer.hashicorp.com/packer/plugins/datasources/amazon/ami
+
+data "amazon-ami" "basic-example" {
+    filters = {
+        virtualization-type = "hvm"
+        name = "ubuntu/images/*ubuntu-xenial-16.04-amd64-server-*"
+        root-device-type = "ebs"
+    }
+    owners = ["099720109477"]
+    most_recent = true
+}
+
+
+For now what we want is taht our filter should act and work accordingly 
+
+so we need to fetch the AMI ids from the  amazon linux instances(As here we want to make the use of those) while using the launch instances
+
+data "amazon-ami" "basic-example" {
+    filters = {
+        virtualization-type = "hvm"
+        name = "al2023-ami-*"
+        root-device-type = "ebs"
+    }
+    owners = ["137112412989"]
+    most_recent = true
+}
+
+
+Now there is a process to apply the right filter for the  ami id ==>
+
+Steps:  Go to the Images(Side nav) ==> AMI => In dropdown select filetr Public Images ==> Search for the ami-05548f9cecf47b442(copied AMI ID)  => apply filter we wil get the AMI name
+
+Same in taht filter we will also get the owner name here ==> add it in this field owners = ["137112412989"]
+
+data "amazon-ami" "basic-example" {
+    filters = {
+        virtualization-type = "hvm"
+        name = "al2023-ami-*"
+        root-device-type = "ebs"
+    }
+    owners = ["137112412989"]
+    most_recent = true
+}
+
+So now the source_ami can be calculated like the =>  source_ami =  var.image_id  ===> source_ami = data.amazon-ami.this.id
+
+
+So as we are making use of the data source we do not need the varaible for the image_id so just remove it from there variable.pkr.hcl
+
+variable image_id{
+    description= "Provides the AWS AMI id specified in region"
+    type= "string"
+    default = ""
+}
+
+Add all the rest variables like 
+
+variable instance_type{
+    description = "instacne type of launching AMI"
+    type = string
+    default = "t2.micro"
+}
+
+variable ssh_user_name{
+    description = "ssh user name for instance"
+    type = string
+    default = "ec2-user"
+}
+variable app_name{
+    description = "app name for web server image"
+    type = string
+    default = "web-server-image"
+}
+
+
+The build block in the ami.pkr.hcl it is used to build the image (We can have multiple sources and the multiple build block)
+
+build {
+  sources = [
+    "source.amazon-ebs.basic-example"
+  ]
+}
+eg. suppose we want to build 2 golden images i.e. for amazon linux and ubuntu then we we can add source block for both and then write it in the build block also in the sources
+
+Now in our case there is only one image we want to build so we can give it a name as "this"
+
+build {
+  sources = [
+    "source.amazon-ebs.this"
+  ]
+}
+
+Also we need to make use of the proviosner here known as the packer provisioner same as that in our teraform
+
+so refer the docs here as mentioned https://developer.hashicorp.com/packer/docs/provisioners/shell
+
+using the shell proviosioner in packer ==> Here we can execute the shell script ; it acts similar to that of the "remote-exec"
+
+provisioner "shell" {
+    inline = ["echo foo"]
+}
+
+
+NOTE: We are here adding the provisoner shell so as we can add our webapp server in it.
+
+sudo yum update -y && sudo yum install httpd -y
+sudo systemctl enable httpd
+sudo systemctl start httpd
+sudo echo '<h1>Hey there! Welcome to the web server</h1>' | sudo tee /var/html/index.html 
+
+Copy all the commands from the user_data.sh file and add it in the provisioner shell under the build block
+
+  provisioner "shell" {
+    inline = [
+        "sudo yum update -y && sudo yum install httpd -y",
+        "sudo systemctl enable httpd",
+        "sudo systemctl start httpd",
+        "sudo echo '<h1>Hey there! Welcome to the web server</h1>' | sudo tee /var/html/index.html" 
+    ]
+  }
+
+---------------  
+
+Now to initialize the packer it can be done with the following as 
+
+packer init ./image-builder/  [as our flder is child folder of the main folder]
+
+Packer Installation: First we need to install packer with the steps below
+
+curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
+sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+sudo apt-get update && sudo apt-get install packer
+
+----------------------
+
+To initialise the packer ==> packer init ./image-builder/ (If packer folder is child folder) else ==> packer init .
+
+To validate the packer ==> packer validate ./image-builder/ (If packer folder is child folder) else ==> packer validate .
+
+To format the packer ==> packer fmt ./image-builder/ (If packer folder is child folder) else ==> packer fmt .
+
+To build the packer ==> packer build ./image-builder/ (If packer folder is child folder) else ==> packer build .
+
+Here in the variable.pkr.hcl we have the instance_type default decalred as following 
+
+variable instance_type{
+    description = "instacne type of launching AMI"
+    type = string
+    default = "t2.micro"
+}
+
+but what if we remove the default field then how can we add the "t2.micro" can be done in multiple ways they are 
+
+1. Adding as the env variables
+2. passing with the commands as --var=value_of_var
+3. pasing in as var-file 
+
+They are same as tjat of we have in the terrafform
+
+We can use here env variable way like as below
+
+export PKR_VAR_instance_type="t2.micro"
+-----------------------------------------
+
+you will eventually face this error 
+
+$ packer build ./Image_builder/
+Error: Datasource.Execute failed: Error querying AMI: UnauthorizedOperation: You are not authorized to perform this operation.
+
+NOTE : So its a bug even after provideding the stsassumerole the policy it is not providing the full access to the EC2 user so we needed to provide explicit permission of ec2fullaccess to it.
+
+stsuser should be added with the ec2-full acceess 
+
+----------------------------------------------------
+
+Now check for it in the ec2 ==> AMI => owned by me in the us-east-1 region (as provided by us) => we will see our ami running there
+
+########################################  END Day 20 ########################################
