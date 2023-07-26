@@ -32,53 +32,53 @@ jobs:
 
         # initialise the packer 
       - name: initialise packer
-        id: init packer
+        id: init-packer
         run: "packer init ./image-builder/"
 
         # format packer
       - name: format packer
-        id: fmt packer
+        id: fmt-packer
         run: "packer fmt ./image-builder/"
 
         # validate packer
       - name: Validate packer image
-        id: validate packer
+        id: validate-packer
         run: "packer validate ./image-builder/"
 
         # build packer image
       - name: Build packer image
-        id: build packer image
+        id: build-packer-image
         run: "packer build ./image-builder/"
 
         # after packer we need to initialise the terraform for provisioning of the infrastructure using it
 
         # setup terraform
       - name: setup terraform
-        id: Setup Terraform
+        id: setup-tf
         uses: hashicorp/setup-terraform@v2
 
         # terraform initilaise
       - name: terraform init
-        id: initilaiseterraform
+        id: init-tf
         run: terraform init
         
         # format terraform
       - name: format terraform
-        id: format terraform
+        id: fmt-tf
         run: terraform fmt
 
         # validate terraform
       - name: terraform validate
-        id: validateterraform
+        id: valid-tf
         run: terraform validate
 
         #plan terraform resources
       - name: terraform plan
-        id: planterraform
+        id: plan-tf
         # The -input=false indicates that we do not need input variables as to avoid the locking of state file and hasssle of creation of bucket for the other file.
         run: terraform plan -input=false -lock=false
 
         # apply terraform resources
       - name: apply terraform 
-        id: terraformapply
+        id: apply-tf
         run: terraform apply --auto-approve -lock=false
