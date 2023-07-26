@@ -12,16 +12,16 @@ resource "null_resource" "provisioner" {
     private_key = var.mykey
   }
 
-  provisioner "remote-exec" {
-    inline = [
-      "chmod 400 mykey"
-    ]
-  }
-
   provisioner "file" {
     # source      = "~/Downloads/new-ultimate-cicd.pem" # where do you want to fetch the file from
     destination = "/home/ec2-user/mykey" # to what destination we want the file to be taken to
     content     = var.mykey
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "chmod 400 mykey"
+    ]
   }
 
 }

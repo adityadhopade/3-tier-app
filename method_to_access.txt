@@ -2884,9 +2884,17 @@ env:
   Here by the TF_VAR_mykey it will consider the value as Environemnt variables
   ${{secrets.ssh_private_key}} => It will take the private key in the ssh_private_key which we have in which we added our private key
 
+
+
 -----------
 NOTE: We have the options to update the secrets but cannot see the existing secrets
 
+------------------------
+
+Steps to follow
+scp -i keypair keypair ec2-user@3.236.165.134:~
+ssh -i keypair ec2-user@10.0.0.
+curl localhost
 
 
 ########################################  END Day 21 ########################################
