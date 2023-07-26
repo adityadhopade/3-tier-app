@@ -2670,6 +2670,10 @@ Also plan and run the teraform it will pop and error for us as we have not passe
 What we will do for now is that we will manually add the pem file using the scp commands like 
 
 scp -i keypair keypair ec2-user@18.233.200.55:~ 
+
+ssh -i keypair ec2-user@<private-ip>
+
+localhost
 ------------------------------
 In the packer there is not a file like terraform.tfvars as this automatically gets loaded when there is no other file containing variables but in the case of the packer it does not exist and we need to provide the name explcittly as "variable.pkrvars.hcl" and if used the "auto" option it will directly use it as  "variables.auto.pkrvars.hcl"
 
@@ -2677,3 +2681,95 @@ In the packer there is not a file like terraform.tfvars as this automatically ge
 
 ########################################  END Day 20 ########################################
 
+########################################  Day 21 new github workflow (github actions) for our ami resources in simple.yml########################################
+
+We would erase all the contents of the simple.yml file present earlier and add the following conetent in it
+
+# give out the name of the "github action pipeline name" what we want it to be 
+name: Provionong of threee tier architecture using Terraform
+
+# When to run the pipeline
+on: 
+  #to manually run the workfloe use workflow dispatch
+  workflow_dispatch: 
+  # apart from that we need to run the workflow on the push so we are providing the branches explicitly here(i.e. when pushed on the branch it should trigger)
+  push:
+    branches: [main]
+  #if we need to invoker the workflow on the pull requests also then we can add it (or we can add it for the specific branch also like added above)  
+  pull-request:   
+
+# What jobs to run
+jobs: 
+  #name of the job
+  provison-three-tier: 
+    # on which runner it should run eg: self hosted runner, github hosted runners (for linux=> ubuntu-latest , windows => windows-latest, mac-os => macos-latest)
+    runs-on: ubuntu-latest
+    # In a job there should always be the some serial steps to execute
+    steps:
+      # while the first should always be checking out the scm tool
+      - name: checkout
+        #it is prebuilted and we can directly use it as is  ( same as plugins in jenkins) by adding this line (search for it actions/checkout@v2 in github)
+        uses: actions/checkout@v2 
+        # with the help of these "actions" we do not need to have the hassle of what we need to explicityly perform using scripts(like in jenkins) we can directly search and make use of what actions are needed as per our required steps
+
+        # now we need to configure the packer as we want to use the golden image  
+        name: Setup the packer
+        id: setup
+        uses: hashicorp/setup-packer@main
+
+
+        # initialise the packer 
+        name: initilaise packer
+        id: init packer
+        run: "packer init ./image-builder/"
+
+        # format packer
+        name: format packer
+        id: fmt packer
+        run: "packer fmt ./image-builder/"
+
+        # validate packer
+        name: Validate packer image
+        id: validate packer
+        run: "packer validate ./image-builder/"
+
+        # build packer image
+        name: Build packer image
+        id: build packer image
+        run: "packer build ./image-builder/"
+
+        # after packer we need to initialise the terraform for provisioning of the infrastructure using it
+
+        # setup terraform
+        name: setup terraform
+        id: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+
+        # terraform initilaise
+        name: terraform init
+        id: initilaiseterraform
+        run: terraform init
+        
+        # format terraform
+        name: fomrat terraform
+        id: format terraform
+        run: terraform fmt
+
+        # validate terraform
+        name: terraform validate
+        id: validateterraform
+        run: terraform validate
+
+        #plan terraform resources
+        name: terraform plan
+        id: planterraform
+        # The -input=false indicates that we do not need input variables as to avoid the locking of state file and hasssle of creation of bucket for the other file.
+        run: terraform plan -input=false -lock=false
+
+        # apply terrafrom resources
+        name: apply terraform 
+        id: terraformapply
+        run: terraform apply --auto-approve -lock=false
+          
+
+########################################  END Day 21 ########################################
