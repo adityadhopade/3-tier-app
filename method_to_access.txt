@@ -2772,4 +2772,38 @@ jobs:
         run: terraform apply --auto-approve -lock=false
           
 
+-------------------
+
+While running the job it gives us the following error in packer build
+
+Error: Datasource.Execute failed: no valid credential sources for  found.
+
+Please see 
+for more information about providing credentials.
+
+Error: NoCredentialProviders: no valid providers in chain. Deprecated.
+	For verbose messaging see aws.Config.CredentialsChainVerboseErrors
+
+
+  on image-builder/data.pkr.hcl line 1:
+  (source code not available)
+
+
+Error: Process completed with exit code 1.
+
+NOTE: For the role_arn we have the credentails locally configured but for our workflow it dosent know how to add the credentails so as we have not passed our credentials in this case so we should add our credentails ie by creating it on the git using the "secret manager"
+
+
+github repo => Settings ==> secret and variables (Actions) => create secret => and add the aws credentails for the access key and secret key
+Push this changes to rerun the workflow
+
+
+Also need to add those keys as the Environment variables in the provision.yml to establish a conection
+Add the under the runs-on: ubuntu-latest (Runner as)
+env: 
+  AWS_ACCESS_KEY_ID: ${{ secrets.aws_access_key }} ==> It represents the secret named AWS_ACCESS_KEY taht we have added fore the repo
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.aws_secret_key }}  ==> represents the secret named AWS_SECRET_ACCESS_KEY that we have added for the repo
+
+  We are setting up these values in the environment variables AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
+
 ########################################  END Day 21 ########################################

@@ -16,6 +16,10 @@ jobs:
   provison-three-tier: 
     # on which runner it should run eg: self hosted runner, github hosted runners (for linux=> ubuntu-latest , windows => windows-latest, mac-os => macos-latest)
     runs-on: ubuntu-latest
+    # here we need to add the envirnoment variables
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.aws_access_key }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.aws_secret_key }}
     # In a job there should always be the some serial steps to execute
     steps:
       # while the first should always be checking out the scm tool
