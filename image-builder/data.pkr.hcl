@@ -7,5 +7,4 @@ data "amazon-ami" "this" {
   owners      = ["137112412989"]
   most_recent = true
   region      = var.region
-  force_deregister = true
 }
