@@ -61,3 +61,8 @@ variable "key_name" {
   default     = "deployer name"
 }
 
+# added to add the key file in it
+variable "mykey" {
+  type = string
+}
+

@@ -20,6 +20,8 @@ jobs:
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.aws_access_key }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.aws_secret_key }}
+      # IMPORTANT: Added the private key file by help of this 
+      TF_VAR_mykey : ${{secrets.ssh_private_key}}
     # In a job there should always be the some serial steps to execute
     steps:
       # while the first should always be checking out the scm tool

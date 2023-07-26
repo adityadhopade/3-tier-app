@@ -21,7 +21,7 @@ resource "null_resource" "provisioner" {
   provisioner "file" {
     # source      = "~/Downloads/new-ultimate-cicd.pem" # where do you want to fetch the file from
     destination = "/home/ec2-user/mykey" # to what destination we want the file to be taken to
-    content     = file("${path.module}/../keypair")
+    content     = var.mykey
   }
 
 }

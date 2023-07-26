@@ -2806,4 +2806,87 @@ env:
 
   We are setting up these values in the environment variables AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
 
+
+----------------------------------
+
+Now it will again fail on the terraform validate step gives error as 
+
+Wed, 26 Jul 2023 10:42:09 GMT
+Run terraform validate
+Wed, 26 Jul 2023 10:42:09 GMT
+/home/runner/work/_temp/91a86c06-0bf7-41d3-8ec7-354489449c6a/terraform-bin validate
+Wed, 26 Jul 2023 10:42:12 GMT
+╷
+Wed, 26 Jul 2023 10:42:12 GMT
+│ Error: Invalid function argument
+Wed, 26 Jul 2023 10:42:12 GMT
+│ 
+Wed, 26 Jul 2023 10:42:12 GMT
+│   on null_resource.tf line 12, in resource "null_resource" "provisioner":
+Wed, 26 Jul 2023 10:42:12 GMT
+│   12:     private_key = file("${path.module}/../keypair")
+Wed, 26 Jul 2023 10:42:12 GMT
+│     ├────────────────
+Wed, 26 Jul 2023 10:42:12 GMT
+│     │ while calling file(path)
+Wed, 26 Jul 2023 10:42:12 GMT
+│     │ path.module is "."
+Wed, 26 Jul 2023 10:42:12 GMT
+│ 
+Wed, 26 Jul 2023 10:42:12 GMT
+│ Invalid value for "path" parameter: no file exists at "./../keypair"; this
+Wed, 26 Jul 2023 10:42:12 GMT
+│ function works only with files that are distributed as part of the
+Wed, 26 Jul 2023 10:42:12 GMT
+│ configuration source code, so if this file will be created by a resource in
+Wed, 26 Jul 2023 10:42:12 GMT
+│ this configuration you must instead obtain this result from an attribute of
+Wed, 26 Jul 2023 10:42:12 GMT
+│ that resource.
+Wed, 26 Jul 2023 10:42:12 GMT
+╵
+Wed, 26 Jul 2023 10:42:12 GMT
+Error: Terraform exited with code 1.
+Wed, 26 Jul 2023 10:42:12 GMT
+Error: Process completed with exit code 1.
+
+
+NOTE: Here we are adding our private key directly which should not be added so how can we pass the secret key so that should be used by our github workflow 
+
+As we have done above we could just add the secret key for the repo and use it there 
+
+Add it as SSH_PRIVATE_KEY and make reference of it in the provision.yml file in the env 
+
+  provisioner "file" {
+    # source      = "~/Downloads/new-ultimate-cicd.pem" # where do you want to fetch the file from
+    destination = "/home/ec2-user/mykey" # to what destination we want the file to be taken to
+    content     = file("${path.module}/../keypair")
+  }
+
+But also we need to pass it to the file proviosioner in the content field => so we get it as follows
+
+WE need to make the change as follows
+content = file("${path.module}/../keypair") ==> content = var.mykey
+
+WE will pass here mykey as an environment variable to the variable.tf file
+
+In varaible.tf ==> make a new entry for the variable mykey
+
+variable "mykey" {
+  type: string
+  value: <We will not pass here>  ==> But while terraform plan it will ask for the "Enter the value" ==> WE will provide it via the Environment ENV_VARIABLES
+}
+
+Then add the environment variable for the secret key we added into the secrets of the repository
+env:
+  TF_VAR_mykey : ${{secrets.ssh_private_key}}
+
+  Here by the TF_VAR_mykey it will consider the value as Environemnt variables
+  ${{secrets.ssh_private_key}} => It will take the private key in the ssh_private_key which we have in which we added our private key
+
+-----------
+NOTE: We have the options to update the secrets but cannot see the existing secrets
+
+
+
 ########################################  END Day 21 ########################################
