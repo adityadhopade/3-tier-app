@@ -14,7 +14,7 @@ resource "aws_instance" "bastion" {
   }
 
   vpc_security_group_ids = [aws_security_group.bastion_host.id]
-  user_data              = file("${path.module}/user_data.sh")
+  # user_data              = file("${path.module}/user_data.sh")
 }
 
 resource "aws_security_group" "bastion_host" {
