@@ -12,9 +12,9 @@ resource "null_resource" "provisioner" {
     private_key = file("${path.module}/../../Downloads/new-ultimate-cicd.pem")
   }
 
-#   provisioner "local-exec" {
-#     command = "scp -o StrictHostKeyChecking=no -i  ~/Downloads/new-ultimate-cicd.pem ~/Downloads/new-ultimate-cicd.pem ec2-user@${aws_instance.bastion.public_ip}:~"
-#   }
+  #   provisioner "local-exec" {
+  #     command = "scp -o StrictHostKeyChecking=no -i  ~/Downloads/new-ultimate-cicd.pem ~/Downloads/new-ultimate-cicd.pem ec2-user@${aws_instance.bastion.public_ip}:~"
+  #   }
 
   provisioner "remote-exec" {
     inline = [
