@@ -9,7 +9,7 @@ resource "null_resource" "provisioner" {
     host        = aws_instance.bastion.public_ip
     type        = "ssh"
     user        = "ec2-user"
-    private_key = file("${path.module}/../keypair")
+    private_key = var.mykey
   }
 
   provisioner "remote-exec" {
