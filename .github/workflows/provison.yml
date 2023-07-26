@@ -8,8 +8,7 @@ on:
   # apart from that we need to run the workflow on the push so we are providing the branches explicitly here(i.e. when pushed on the branch it should trigger)
   push:
     branches: [main]
-  #if we need to invoker the workflow on the pull requests also then we can add it (or we can add it for the specific branch also like added above)  
-  pull-request:   
+  #if we need to invoker the workflow on the pull requests also then we can add it (or we can add it for the specific branch also like added above)    
 
 # What jobs to run
 jobs: 
