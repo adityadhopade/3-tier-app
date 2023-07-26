@@ -25,60 +25,60 @@ jobs:
         # with the help of these "actions" we do not need to have the hassle of what we need to explicityly perform using scripts(like in jenkins) we can directly search and make use of what actions are needed as per our required steps
 
         # now we need to configure the packer as we want to use the golden image  
-        name: Setup the packer
+      - name: Setup the packer
         id: setup
         uses: hashicorp/setup-packer@main
 
 
         # initialise the packer 
-        name: initialise packer
+      - name: initialise packer
         id: init packer
         run: "packer init ./image-builder/"
 
         # format packer
-        name: format packer
+      - name: format packer
         id: fmt packer
         run: "packer fmt ./image-builder/"
 
         # validate packer
-        name: Validate packer image
+      - name: Validate packer image
         id: validate packer
         run: "packer validate ./image-builder/"
 
         # build packer image
-        name: Build packer image
+      - name: Build packer image
         id: build packer image
         run: "packer build ./image-builder/"
 
         # after packer we need to initialise the terraform for provisioning of the infrastructure using it
 
         # setup terraform
-        name: setup terraform
+      - name: setup terraform
         id: Setup Terraform
         uses: hashicorp/setup-terraform@v2
 
         # terraform initilaise
-        name: terraform init
+      - name: terraform init
         id: initilaiseterraform
         run: terraform init
         
         # format terraform
-        name: format terraform
+      - name: format terraform
         id: format terraform
         run: terraform fmt
 
         # validate terraform
-        name: terraform validate
+      - name: terraform validate
         id: validateterraform
         run: terraform validate
 
         #plan terraform resources
-        name: terraform plan
+      - name: terraform plan
         id: planterraform
         # The -input=false indicates that we do not need input variables as to avoid the locking of state file and hasssle of creation of bucket for the other file.
         run: terraform plan -input=false -lock=false
 
         # apply terraform resources
-        name: apply terraform 
+      - name: apply terraform 
         id: terraformapply
         run: terraform apply --auto-approve -lock=false
