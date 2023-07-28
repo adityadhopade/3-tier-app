@@ -11,7 +11,9 @@ resource "aws_security_group" "web_server" {
       from_port   = ingress.value.port
       to_port     = ingress.value.port
       protocol    = ingress.value.protocol
-      cidr_blocks = [aws_vpc.this.cidr_block]
+      # cidr_blocks = [aws_vpc.this.cidr_block]
+      #Adding the load balancers security group to the web server as it would be directly connected to the load balancer
+      security_groups = [aws_security_group.lb_sg.id]
     }
   }
 
