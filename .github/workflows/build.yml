@@ -1,0 +1,37 @@
+on:  
+    workflow_dispatch: 
+    # push:
+    # # on the push on the patghs below we shuld trigger the build.yml pipeline 
+    #     paths:
+    #         - .github/workflows/build.yml
+    #         - ../image-builder
+    #     branches: [main]    
+jobs: 
+    provison-three-tier: 
+        runs-on: ubuntu-latest
+        env:
+            AWS_ACCESS_KEY_ID: ${{ secrets.aws_access_key }}
+            AWS_SECRET_ACCESS_KEY: ${{ secrets.aws_secret_key }}
+        steps:
+            -   name: checkout
+                uses: actions/checkout@v2
+        
+            -   name: Setup the packer
+                id: setup
+                uses: hashicorp/setup-packer@main
+
+            -   name: initialise packer
+                id: init-packer
+                run: "packer init ./image-builder/"
+
+            -   name: format packer
+                id: fmt-packer
+                run: "packer fmt ./image-builder/"
+
+            -   name: Validate packer image
+                id: validate-packer
+                run: "packer validate ./image-builder/"
+
+            -   name: Build packer image
+                id: build-packer-image
+                run: "packer build ./image-builder/"
