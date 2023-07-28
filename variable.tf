@@ -85,3 +85,17 @@ variable "mykey" {
   type = string
 }
 
+variable "db_user_name" {
+  description = "Username to connect with db"
+  type        = string
+  #to hide the sensitive info
+  sensitive = true
+}
+
+variable "db_password" {
+  description = "Password to connect with db"
+  type        = string
+  #to hide the sensitive info
+  sensitive = true
+}
+

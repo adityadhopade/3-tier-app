@@ -109,3 +109,30 @@ resource "aws_security_group" "lb_sg" {
     Name = "allow_access_to_lb_from_internet"
   }
 }
+
+# db sg
+resource "aws_security_group" "db_sg" {
+  name        = "allow_db"
+  description = "Allow db access from the application server"
+  vpc_id      = aws_vpc.this.id
+
+  ingress {
+    description     = "Allow db access from the application server"
+    from_port       = 3306
+    to_port         = 3306
+    protocol        = "tcp"
+    security_groups = [aws_security_group.application_server.id]
+
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "allow_db_access"
+  }
+}

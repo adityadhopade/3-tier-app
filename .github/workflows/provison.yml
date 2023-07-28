@@ -23,6 +23,11 @@ jobs:
       # IMPORTANT: Added the private key file by help of this 
       TF_VAR_mykey : ${{secrets.ssh_private_key}}
     # In a job there should always be the some serial steps to execute
+
+      #Add the variables for the DB username and password
+      TF_VAR_db_user_name: ${{ secrets.db_user_name }}
+      TF_VAR_db_password: ${{ secrets.db_password }}
+      
     steps:
       # while the first should always be checking out the scm tool
       - name: checkout

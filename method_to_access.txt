@@ -3858,3 +3858,156 @@ added the application load balancers, target_group, target_group_attachement, aw
 
 
 ########################################  END Day 22 ########################################
+
+######################################## Day 23 #############################################
+
+We are going to implement the RDS in the aws resources
+
+Arooura RDS ==> Completely AWS based service, It acts a s a wrappaer to the mysql+ posgresql for performance enhacement
+
+Ways to install database in AWS ==>
+
+1. launch an ec2 instance ==> configure everything from scratch ==> need to take care of everything patching,managing, backup, maintainance
+
+2. By using AWS RDS => we can do all of the above
+
+--------------------------------------------------
+
+
+Now lets start applying RDS in our solution  => create rds.tf       
+
+use template from here (basic usage template) [NOTE: Never recommended to go for latest version ==> v5.6.1]
+https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/db_instance
+
+
+resource "aws_db_instance" "default" {
+  allocated_storage    = 10
+  db_name              = "mydb"
+  engine               = "mysql"
+  engine_version       = "5.7"
+  instance_class       = "db.t3.micro"
+  username             = "foo"
+  password             = "foobarbaz"
+  parameter_group_name = "default.mysql5.7"
+  skip_final_snapshot  = true
+}
+
+modified to the 
+
+resource "aws_db_instance" "default" {
+  allocated_storage    = 10
+  db_name              = "threetierdb"
+  engine               = "mysql"
+  # need to verify ift with the latest engine version via going to aws console for checking engine version ==> aws rds
+  engine_version       = "8.0.32"
+  instance_class       = "db.t3.micro"
+  # as its sensitive information for both username and password
+  username             = var.db_user_name
+  password             = var.db_password
+  #remove the parameter_group_name field for now
+  #   parameter_group_name = "default.mysql5.7"
+  skip_final_snapshot  = true
+
+  #Add security groups, so we firstly need to create the security group for this
+  security_groups = [aws_security_group.db_sg.id]  
+}
+
+
+also the security_group is now added so we get it as we add the following code in it
+
+# rds sg
+resource "aws_security_group" "db_sg" {
+  name        = "allow_db"
+  #As we know only our application server should connect to the database [rds] 
+  description = "Allow db access from the application server"
+  vpc_id      = aws_vpc.this.id
+
+  ingress {
+    description = "Allow db access from the application server"
+    #for mysql default port is 3306 so need to change it to the 3306
+    from_port   = 3306
+    to_port     = 3306
+    protocol    = "tcp"
+    # instead of cidr block allow to access from the vpc_security_group_id of the application_server
+    # cidr_blocks = ["0.0.0.0/0"]
+    vpc_security_group_ids = [aws_security_group.db_sg.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "allow_db_access"
+  }
+}
+
+Add the varaibls that are made in the variables.tf
+
+variable "db_user_name" {
+  description = "Username to connect with db"
+  type = string
+  #to hide the sensitive info
+  sensitive = true
+}
+
+variable "db_password" {
+  description = "Password to connect with db"
+  type = string
+  #to hide the sensitive info
+  sensitive = true
+}
+
+
+-----------------------------------------
+Along with that we need to add the "subnet_group" 
+
+AS we do not have one so we need to create the subnet groups
+
+Copy the template code from the https://registry.terraform.io/providers/-/aws/5.1.0/docs/resources/db_subnet_group
+
+resource "aws_db_subnet_group" "default" {
+  name       = "main"
+  subnet_ids = [aws_subnet.frontend.id, aws_subnet.backend.id]
+
+  tags = {
+    Name = "My DB subnet group"
+  }
+}
+
+modify it to the 
+
+resource "aws_db_subnet_group" "this" {
+  name       = "threetierdb_subnet_group"
+  #subnets should lie into the private subnets so we need to add private subnets from the app_server.tf
+  subnet_ids = [for each_subnet in aws_subnet.private_subnet : each_subnet.id]
+
+  tags = {
+    Name = "threetier_db_subnet"
+  }
+}
+
+
+Then what we need to do is we need to pass the variables to the proviosn.yml file to ENV Variables and run 
+the github actions workflow smoothly
+
+Add the env variables like ==>
+  TF_VAR_db_user_name: ${{ secrets.db_user_name }}
+  TF_VAR_db_password: ${{ secrets.db_password }}
+
+Add the secrets for the db in the Github Repo with the secrets
+
+DB_USER_NAME = admin
+DB_PASSWORD = admin123
+
+
+Now run the pipeline/ github actions here like by commiting the code ==> 
+
+git commit -am "code added for rds, chnagesin provison.yml"
+
+git push
+
+######################################## END Day 23 #########################################
