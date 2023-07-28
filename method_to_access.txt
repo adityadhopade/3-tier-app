@@ -4010,4 +4010,104 @@ git commit -am "code added for rds, chnagesin provison.yml"
 
 git push
 
+All should work here
+---------------------------------------
+
+Here we will segregate the packer build and the terraform build seperately 
+
+build.yml ==> Will contain all the content of the packer
+provison.yml ==> Will contain all the content of the Terraform
+
+
+
+Modified build.yml will look like 
+
+on:  
+    workflow_dispatch: 
+    # push:
+    # # on the push on the patghs below we shuld trigger the build.yml pipeline 
+    #     paths:
+    #         - .github/workflows/build.yml
+    #         - ../image-builder
+    #     branches: [main]    
+jobs: 
+    provison-three-tier: 
+        runs-on: ubuntu-latest
+        env:
+            AWS_ACCESS_KEY_ID: ${{ secrets.aws_access_key }}
+            AWS_SECRET_ACCESS_KEY: ${{ secrets.aws_secret_key }}
+        steps:
+            -   name: checkout
+                uses: actions/checkout@v2
+        
+            -   name: Setup the packer
+                id: setup
+                uses: hashicorp/setup-packer@main
+
+            -   name: initialise packer
+                id: init-packer
+                run: "packer init ./image-builder/"
+
+            -   name: format packer
+                id: fmt-packer
+                run: "packer fmt ./image-builder/"
+
+            -   name: Validate packer image
+                id: validate-packer
+                run: "packer validate ./image-builder/"
+
+            -   name: Build packer image
+                id: build-packer-image
+                run: "packer build ./image-builder/"
+
+
+The modified provison.yml will look like 
+
+name: Provisioning of threee tier architecture using Terraform
+on: 
+  workflow_dispatch: 
+  # push:
+  #   branches: [main]
+
+jobs: 
+  provison-three-tier: 
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.aws_access_key }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.aws_secret_key }}
+      TF_VAR_mykey : ${{secrets.ssh_private_key}}
+      TF_VAR_db_user_name: ${{ secrets.db_user_name }}
+      TF_VAR_db_password: ${{ secrets.db_password }}
+      
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2 
+
+      - name: setup terraform
+        id: setup-tf
+        uses: hashicorp/setup-terraform@v2
+
+      - name: terraform init
+        id: init-tf
+        run: terraform init
+        
+      - name: format terraform
+        id: fmt-tf
+        run: terraform fmt
+
+      - name: terraform validate
+        id: valid-tf
+        run: terraform validate
+
+      - name: terraform plan
+        id: plan-tf
+        run: terraform plan -input=false -lock=false
+
+      - name: apply terraform 
+        id: apply-tf
+        run: terraform apply --auto-approve -lock=false
+
+We are here commenting the push beacuse we want manual dispatch for now so we get as follows        
+
+
 ######################################## END Day 23 #########################################
