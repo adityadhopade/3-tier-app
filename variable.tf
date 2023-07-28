@@ -55,6 +55,25 @@ variable "inbound_rules_web" {
   }]
 }
 
+#add the variable for inbound_rules_application(Application server)
+
+variable "inbound_rules_application" {
+  description = "ingress rules for security group of application server"
+  type = list(object({
+    port        = number
+    description = string
+    protocol    = string
+  }))
+
+  #As it would be running the Tomcat Application we will be needing port 8080 in inbound rules and we would be removing ssh [port 22] for that we will add manually its one of the usecase
+  default = [{
+    port        = 8080
+    description = "This is for the application hosting"
+    protocol    = "tcp"
+  }]
+}
+
+
 variable "key_name" {
   type        = string
   description = "key pair name"
