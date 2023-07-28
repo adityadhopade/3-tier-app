@@ -16,6 +16,8 @@ resource "null_resource" "provisioner" {
     # source      = "~/Downloads/new-ultimate-cicd.pem" # where do you want to fetch the file from
     destination = "/home/ec2-user/mykey" # to what destination we want the file to be taken to
     content     = var.mykey
+    # even if it fails proceed to the next step
+    on_failure = continue
   }
 
   provisioner "remote-exec" {
