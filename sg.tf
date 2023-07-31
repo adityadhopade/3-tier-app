@@ -54,7 +54,7 @@ resource "aws_security_group" "application_server" {
   }
 
   tags = {
-    Name = "allow_webserver"
+    Name = "allow_application_server"
   }
 }
 
@@ -81,7 +81,7 @@ resource "aws_security_group" "bastion_host" {
   }
 
   tags = {
-    Name = "allow_bastion_host_security"
+    Name = "allow_bastion_host_sg"
   }
 }
 
@@ -135,6 +135,6 @@ resource "aws_security_group" "db_sg" {
   }
 
   tags = {
-    Name = "allow_db_access"
+    Name = "allow_db_access_sg"
   }
 }
