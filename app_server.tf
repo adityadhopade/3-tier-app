@@ -80,12 +80,12 @@ module "asg" {
     cpu_credits = "standard"
   }
 
-  instance_market_options = {
-    market_type = "spot"
-    spot_options = {
-      block_duration_minutes = 60
-    }
-  }
+  # instance_market_options = {
+  #   market_type = "spot"
+  #   spot_options = {
+  #     block_duration_minutes = 60
+  #   }
+  # }
 
   metadata_options = {
     http_endpoint               = "enabled"
@@ -97,20 +97,20 @@ module "asg" {
     availability_zone = "us-west-1b"
   }
 
-  tag_specifications = [
-    {
-      resource_type = "instance"
-      tags          = { WhatAmI = "Instance" }
-    },
-    {
-      resource_type = "volume"
-      tags          = { WhatAmI = "Volume" }
-    },
-    {
-      resource_type = "spot-instances-request"
-      tags          = { WhatAmI = "SpotInstanceRequest" }
-    }
-  ]
+  # tag_specifications = [
+  #   {
+  #     resource_type = "instance"
+  #     tags          = { WhatAmI = "Instance" }
+  #   },
+  #   {
+  #     resource_type = "volume"
+  #     tags          = { WhatAmI = "Volume" }
+  #   },
+  #   {
+  #     resource_type = "spot-instances-request"
+  #     tags          = { WhatAmI = "SpotInstanceRequest" }
+  #   }
+  # ]
 
   tags = {
     Environment = "dev"
