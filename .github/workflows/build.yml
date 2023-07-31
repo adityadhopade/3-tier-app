@@ -1,11 +1,11 @@
 on:  
     workflow_dispatch: 
-    push:
-    # on the push on the patghs below we shuld trigger the build.yml pipeline 
-        paths:
-            - .github/workflows/build.yml
-            - ../image-builder
-        branches: [main]    
+    # push:
+    # # on the push on the patghs below we shuld trigger the build.yml pipeline 
+    #     paths:
+    #         - .github/workflows/build.yml
+    #         - ../image-builder
+    #     branches: [main]    
 jobs: 
     provison-three-tier: 
         runs-on: ubuntu-latest
