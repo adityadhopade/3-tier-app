@@ -1,3 +1,4 @@
+name: packer build for adding the golden image
 on:  
     workflow_dispatch: 
     # push:
