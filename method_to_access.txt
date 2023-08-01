@@ -4113,3 +4113,21 @@ We are here commenting the push beacuse we want manual dispatch for now so we ge
 
 creating a seperate branch for three-tier-application ==> Then try tio merge to the main branch
 ######################################## END Day 23 #########################################
+
+######################################## Day 24 #########################################
+
+
+Checkout the infra created in Day 23 by checking all the services used they are the EC2 Instances, VPC, AMI's , Laod balancers,
+
+For checking out the load balancers we need to use the following like DNS names
+DNS NAMES: three-tier-alb-444622722.us-east-1.elb.amazonaws.com
+
+It should give us the apache script that we have written in them
+
+
+Tho check the auto-scaling group ==> goto the EC2 instances ==> Side navigations bottomest field refers to Autoscaling
+
+our application server we have builted it by using the autoscaling group so if anything arises we can see its Activity.
+
+
+######################################## END Day 24 #########################################
