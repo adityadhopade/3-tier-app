@@ -3,8 +3,6 @@ variable "cidr_for_vpc" {
   type        = string
 }
 
-#If we want to input the value from the user then we do not need to add the "default"
-
 variable "tenancy" {
   description = "The tenancy value to provide to vpc for 3 tier app"
   type        = string
