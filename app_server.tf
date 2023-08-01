@@ -112,6 +112,40 @@ module "asg" {
   #   }
   # ]
 
+# Target scaling policy schedule based on average CPU load
+  scaling_policies = {
+  avg-cpu-policy-greater-than-50 = {
+    policy_type               = "TargetTrackingScaling"
+    estimated_instance_warmup = 1200
+    target_tracking_configuration = {
+      predefined_metric_specification = {
+        predefined_metric_type = "ASGAverageCPUUtilization"
+      }
+      target_value = 50.0
+    }
+  },
+  predictive-scaling = {
+    policy_type = "PredictiveScaling"
+    predictive_scaling_configuration = {
+      mode                         = "ForecastAndScale"
+      scheduling_buffer_time       = 10
+      max_capacity_breach_behavior = "IncreaseMaxCapacity"
+      max_capacity_buffer          = 10
+      metric_specification = {
+        target_value = 32
+        predefined_scaling_metric_specification = {
+          predefined_metric_type = "ASGAverageCPUUtilization"
+          resource_label         = "testLabel"
+        }
+        predefined_load_metric_specification = {
+          predefined_metric_type = "ASGTotalCPUUtilization"
+          resource_label         = "testLabel"
+        }
+      }
+    }
+  }
+}
+
   tags = {
     Environment = "dev"
     # Project     = "megasecret"
