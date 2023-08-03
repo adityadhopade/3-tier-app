@@ -1,6 +1,6 @@
-# webserver sg
+# Webserver Security Group
 resource "aws_security_group" "web_server" {
-  name        = "allow_webserver"
+  name        = "WebServer-sg-allow"
   description = "Allow web traffic"
   vpc_id      = aws_vpc.this.id
 
@@ -13,7 +13,8 @@ resource "aws_security_group" "web_server" {
       protocol    = ingress.value.protocol
       # cidr_blocks = [aws_vpc.this.cidr_block]
       #Adding the load balancers security group to the web server as it would be directly connected to the load balancer
-      security_groups = [aws_security_group.lb_sg.id]
+      #security_groups = [aws_security_group.lb_sg.id]
+      security_groups = ingress.value.port == 22 ? [aws_security_group.bastion_host.id] : [aws_security_group.lb_sg.id]
     }
   }
 
@@ -25,13 +26,13 @@ resource "aws_security_group" "web_server" {
   }
 
   tags = {
-    Name = "allow_webserver"
+    Name = "allow_webserver_sg"
   }
 }
 
-# appplication server sg
+# Appplication server security group
 resource "aws_security_group" "application_server" {
-  name        = "allow_application_traffic"
+  name        = "Application-Server-sg-allow"
   description = "Allow application traffic"
   vpc_id      = aws_vpc.this.id
   dynamic "ingress" {
@@ -42,7 +43,9 @@ resource "aws_security_group" "application_server" {
       to_port     = ingress.value.port
       protocol    = ingress.value.protocol
       #   cidr_blocks = [aws_vpc.this.cidr_block]
-      security_groups = [aws_security_group.web_server.id]
+      #security_groups = [aws_security_group.web_server.id]
+      #security_groups = ingress.value.port == 22 ? [aws_security_group.bastion_host.id] : [aws_security_group.web.id, aws_security_group.lambda_function.id]
+      security_groups = ingress.value.port == 22 ? [aws_security_group.bastion_host.id] : [aws_security_group.web.id]
     }
   }
 
@@ -58,10 +61,10 @@ resource "aws_security_group" "application_server" {
   }
 }
 
-#bastion host sg
+#Bastion Host Security Group
 
 resource "aws_security_group" "bastion_host" {
-  name        = "allow_bastion_host"
+  name        = "Bastion-host-sg-allow"
   description = "Allow ssh into the private subnet resources using this"
   vpc_id      = aws_vpc.this.id
 
@@ -85,10 +88,10 @@ resource "aws_security_group" "bastion_host" {
   }
 }
 
-# application_lb sg
+# Application Laod Balancers Security Group 
 
 resource "aws_security_group" "lb_sg" {
-  name        = "allow_lb"
+  name        = "Loadbalancer-sg-allow"
   description = "Allow access to load balancers from the internet"
   vpc_id      = aws_vpc.this.id
 
@@ -112,7 +115,7 @@ resource "aws_security_group" "lb_sg" {
   }
 }
 
-# db sg
+# RDS security Group
 resource "aws_security_group" "db_sg" {
   name        = "allow_db"
   description = "Allow db access from the application server"
