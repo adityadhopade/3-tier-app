@@ -38,6 +38,7 @@ module "asg" {
   #image_id          = "ami-ebd02392"
   image_id          = "ami-0f34c5ae932e6f0e4"
   instance_type     = "t3.micro"
+  key_name = var.key_name
   ebs_optimized     = true
   enable_monitoring = true
   # create a security group it is not by default added in the template we copied but we need to add 
@@ -111,6 +112,23 @@ module "asg" {
   #     tags          = { WhatAmI = "SpotInstanceRequest" }
   #   }
   # ]
+
+  initial_lifecycle_hooks = [
+    {
+      name                  = "ExampleStartupLifeCycleHook"
+      default_result        = "CONTINUE"
+      heartbeat_timeout     = 60
+      lifecycle_transition  = "autoscaling:EC2_INSTANCE_LAUNCHING"
+      notification_metadata = jsonencode({ "hello" = "world" })
+    },
+    {
+      name                  = "ExampleTerminationLifeCycleHook"
+      default_result        = "CONTINUE"
+      heartbeat_timeout     = 180
+      lifecycle_transition  = "autoscaling:EC2_INSTANCE_TERMINATING"
+      notification_metadata = jsonencode({ "goodbye" = "world" })
+    }
+  ]
 
 # Target scaling policy schedule based on average CPU load
   scaling_policies = {
