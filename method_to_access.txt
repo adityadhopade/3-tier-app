@@ -4128,6 +4128,29 @@ It should give us the apache script that we have written in them
 Tho check the auto-scaling group ==> goto the EC2 instances ==> Side navigations bottomest field refers to Autoscaling
 
 our application server we have builted it by using the autoscaling group so if anything arises we can see its Activity.
+--------------------------
+Also cross-verify check for the security groups wich are attached to the web server and the application server also the bastion host
+-----------------------------
 
+While checking we found that the in the webserver instances security group we are allowing port 22 from the load balancers but it is not possible as we do NOT have te access via load balncers --> webserver
 
+the correct path is : load  server --> bastion_host --> we_server
+
+So we need to modify the security group for ssh(22) to the bastion_host's security group. So the existing group should be replaced by this sg-0004483d0be15cd64 / allow_bastion_host
+
+----------------
+Try ssh into the astion then weberver and then appolication server to cross-verify if everything is working or not
+
+ssh -i keypair ec2-user@<publc-ip-address>
+
+ssh -i mykey ec2-user@<private-ip-address>
+------------------------------
+If arisd this error naemd ==> Load key "mykey"  error in libcrypto
+
+It is due to the the file provisoner that we have used in the null_resource.tf because it is corrupting the key and sends it to the desired location.
+That is why do not recommend to use the provisioners
+
+better way is to use the scp commands
+
+we should not have the ssh key in the bastion host
 ######################################## END Day 24 #########################################
