@@ -45,7 +45,7 @@ resource "aws_security_group" "application_server" {
       #   cidr_blocks = [aws_vpc.this.cidr_block]
       #security_groups = [aws_security_group.web_server.id]
       #security_groups = ingress.value.port == 22 ? [aws_security_group.bastion_host.id] : [aws_security_group.web.id, aws_security_group.lambda_function.id]
-      security_groups = ingress.value.port == 22 ? [aws_security_group.bastion_host.id] : [aws_security_group.web.id]
+      security_groups = ingress.value.port == 22 ? [aws_security_group.bastion_host.id] : [aws_security_group.web_server.id]
     }
   }
 
