@@ -1,10 +1,10 @@
-name: pakage the resources for maven
+name: pakage the resources for maven build
 on:
   workflow_dispatch:
 
 jobs:
   package:
-      name: package
+      name: package-maven-build
       runs-on: ubuntu-latest
   
       steps:
@@ -17,5 +17,5 @@ jobs:
       - name: Setup JDK 8
         uses: actions/setup-java@v3
         with:
-          distribution: 'temurin'
+          distribution: 'oracle'
           java-version: '8'
