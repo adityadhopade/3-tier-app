@@ -21,4 +21,7 @@ jobs:
           java-version: '8'
 
       - name: build maven package
-        run: mvn clean package    
+        run: mvn clean package
+        
+      - name: deploy the packaged artifact
+        run: aws s3 cp target/*.war s3://artifactwarapplications3adityadhopade  
