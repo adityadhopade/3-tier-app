@@ -20,10 +20,10 @@ resource "null_resource" "provisioner" {
     on_failure = continue
   }
 
-  provisioner "remote-exec" {
-    inline = [
-      "chmod 400 mykey"
-    ]
-  }
+  # provisioner "remote-exec" {
+  #   inline = [
+  #     "chmod 400 mykey"
+  #   ]
+  # }
 
 }
