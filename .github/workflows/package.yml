@@ -22,6 +22,13 @@ jobs:
 
       - name: build maven package
         run: mvn clean package
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.aws_access_key }}
+          aws-secret-access-key: ${{ secrets.aws_secret_key }}
+          aws-region: us-east-1  
         
       - name: deploy the packaged artifact
         run: aws s3 cp target/*.war s3://artifactwarapplications3adityadhopade  

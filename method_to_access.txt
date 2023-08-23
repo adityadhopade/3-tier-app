@@ -4444,4 +4444,26 @@ so we need to addd the code into the package.yml file also
 - name: deploy the packaged artifact
   run: aws s3 cp target/*.war s3://<name-of-bucket> [artifactwarapplications3adityadhopade]
   run: aws s3 cp target/*.war s3://artifactwarapplications3adityadhopade
+
+  It throws out the error i.e.Error: Process completed with exit code 255.
+
+  As we have not configured our aws credentails here so we neeed to firstly apss them
+
+  Search for ==> configure aws cli credentials github actions ==> configure-aws-credentials
+
+  Add above the deploy package
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2 #where our s3 is that region need to be specified
+
+
+Also we need to give the sts-user the Administrator Access 
+- add the permissions in the iam role for the following ==> Administrator access
+NOTE: Or else we can also try with the help of the assunme-role ==> We will need the identitity provider for Github through the OIDC
+Search for "AWS github actions identity provider configuration" ==> Follow the 1st or 2nd generated link [to do task here]
+
 ######################################## END Day 25 #########################################
