@@ -4423,6 +4423,25 @@ jobs:
         java-version: '8' # as we need java 8 here
       # we need to package the java app  
     - name: Build the java app and package it
-      run: mvn clean package 
+      run: mvn clean package
 
+In this also we have disabled the workflow dispatch on push on main in the provison.yml file [so taht the terraform script dosent rerun for the whole time]   
+
+--------------------------
+
+A thing to notice is that we do not need to install maven in the github actions ??
+
+Because in the github actions there are some set of tools which are preinstalled on the github actions runner's by default and maven is one of them
+
+NOTE: But for the self hosted runner then we need to install the maven explicitly.
+
+----------------------------------------------------------
+
+Also we need to create the bucket manually with the help of the aws s3 [console] 
+
+so we need to addd the code into the package.yml file also
+
+- name: deploy the packaged artifact
+  run: aws s3 cp target/*.war s3://<name-of-bucket> [artifactwarapplications3adityadhopade]
+  run: aws s3 cp target/*.war s3://artifactwarapplications3adityadhopade
 ######################################## END Day 25 #########################################
