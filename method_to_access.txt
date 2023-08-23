@@ -4153,5 +4153,226 @@ That is why do not recommend to use the provisioners
 better way is to use the scp commands
 
 we should not have the ssh key in the bastion host
+-----------------------------------------
 
+For adding the database that should only be accessibkle by the appplication server we created a "rds.tf" file
+
+resource "aws_db_instance" "default" {
+  allocated_storage      = 10
+  db_name                = "threetierdb"
+  engine                 = "mysql"
+  engine_version         = "8.0.32"
+  instance_class         = "db.t3.micro"
+  username               = var.db_user_name
+  password               = var.db_password
+  skip_final_snapshot    = true
+  vpc_security_group_ids = [aws_security_group.db_sg.id]
+  db_subnet_group_name   = aws_db_subnet_group.this.id
+}
+
+resource "aws_db_subnet_group" "this" {
+  name = "threetierdb_subnet_group"
+  #subnets should lie into the private subnets so we need to add private subnets from the app_server.tf
+  subnet_ids = [for each_subnet in aws_subnet.private_subnet : each_subnet.id]
+
+  tags = {
+    Name = "threetier_db_subnet"
+  }
+}
+
+We caan check the load balancers having the listeners roles configiured
+
+If there any one request on PORT 80 then it redirects it to the three-tier-tg (our created target group created by terraform configuration ==. which is targetting ourt webserver [which is alos created by terraform code])
+
+Once we reach the rds then install the mysql server by the following steps like as follows
+
+# mysql install 
+
+sudo rpm --import https://repo.mysql.com/RPM-GPG-KEY-mysql-2022
+wget http://dev.mysql.com/get/mysql57-community-release-el7-8.noarch.rpm
+sudo yum localinstall -y mysql57-community-release-el7-8.noarch.rpm
+sudo yum install -y mysql-community-server
+
+sudo systemctl start mysqld 
+sudo systemctl enable mysqld 
+
+Now we need to provide the endpoint in here so we can do it with the help of rds
+
+
+RDS ==> Databases in Sidenav ==> Terrraform file [gnereated by script] ==> Endpoint
+
+terraform-20230822131216976300000007.cjsu2evn5dzp.us-east-1.rds.amazonaws.com
+terraform-20230823042029713400000007.cjsu2evn5dzp.us-east-1.rds.amazonaws.com
+
+add the command like 
+
+mysql -h terraform-20230823042029713400000007.cjsu2evn5dzp.us-east-1.rds.amazonaws.com -u admin -p
+
+It will ask for the password here [admin123]
+
+show databases;
+use threetierdb;
+show tables;
+
+exit;
+-------------------------------------
+
+Now we need to install the tomcat server on the Application Server here
+
+so just do the following steps like
+
+#Install 
+sudo yum install java -y
+
+# Install Tomcat
+sudo su 
+cd /
+cd opt
+
+wget https://dlcdn.apache.org/tomcat/tomcat-9/v9.0.79/bin/apache-tomcat-9.0.79.tar.gz 
+
+#unzip tomcat binary
+tar -zvxf apache-tomcat-9.0.79.tar.gz
+
+cd apache-tomcat-folder
+
+cd bin
+
+chmod +x startup.sh
+chmod +x shutdown.sh
+
+
+Create link files for Tomcat Server up and Down
+
+ln -s /opt/apache-tomcat-9.0.79/bin/startup.sh /usr/local/bin/tomcatup
+
+ln -s /opt/apache-tomcat-9.0.79/bin/shutdown.sh /usr/local/bin/tomcatdown
+
+tomcatup
+
+curl localhost:8080 [It should work]
+
+So for now it will work from our localhost to connect; but if we are accessing it from the othr locations the this could cause the trouble for us. so we need to make the configuration changes
+
+cd /opt/apache-tomcat-9.0.79
+find -name context.xml
+
+Then go to the file vim ./webapps/docs/META-INF/context.xml ==> comment the value tag using the HTML Comments
+
+NOTE: shift + G makes your cusror to go to the last line
+
+Then go to the file vim ./webapps/examples/META-INF/context.xml ==> comment the value tag using the HTML Comments
+
+Then go to the file  vim ./webapps/host-manager/META-INF/context.xml ==> comment the value tag using the HTML Comments
+
+Then go to the file vim ./webapps/manager/META-INF/context.xml ==> comment the value tag using the HTML Comments
+
+./conf/context.xml
+/webapps/docs/META-INF/context.xml
+./webapps/examples/META-INF/context.xml
+./webapps/host-manager/META-INF/context.xml
+./webapps/manager/META-INF/context.xml
+
+
+#comment value tag sections in below all files
+vi ./webapps/examples/META-INF/context.xml
+vi ./webapps/host-manager/META-INF/context.xml
+vi ./webapps/manager/META-INF/context.xml
+
+
+
+
+Update user information in tomcat-users.xml
+cd apache-tomcat-9.0.76
+cd conf
+vi tomcat-users.xml
+
+#Add below lines between <tomcat-users> tag
+
+<role rolename="manager-gui"/>
+<role rolename="manager-script"/>
+<role rolename="manager-jmx"/>
+<role rolename="manager-status"/>   
+<user username="admin" password="admin" roles="manager-
+gui,manager-script,manager-jmx,manager-status, “admin-gui"/>
+<user username="deployer" password="deployer" roles="manager-script"/>
+<user username="tomcat" password="s3cret" roles="manager-gui"/>
+
+----------------------
+
+But how would we access our application servr in the browser then ?
+
+test by curl localhost:8080
+
+We need to go back to our web servers ==> make some settings for the proxies
+
+exit from the rds
+exit from the application server
+cd ~
+cd /etc/httpd
+cd conf.d/
+create a new file named ==> sudo vim proxypass.conf
+
+sudo vi proxy pass.conf
+
+Then add the below text into the ProxyPass.conf file
+
+ProxyPass /home http://10.0.0.52:8080  [http://<private-ip-of-application-server>:8080]
+ProxyPassReverse /home http://10.0.0.52:8080 [http://<private-ip-of-application-server>:8080]
+
+sudo service httpd restart
+
+Now to verify our changes go to the load balancers then add the ==> Copy the DNS NAME ==> http://three-tier-alb-1940867002.us-east-1.elb.amazonaws.com/
+
+
+And now try rto add the endpoint /home what we have added into the ProxyPass.conf file
+
+http://three-tier-alb-1940867002.us-east-1.elb.amazonaws.com/home
+
+The message would appear on the screen as [ If you're seeing this, you've successfully installed Tomcat. Congratulations! ]
+
+What if we click on the manager Appplcation How to ?
+It will show URL not found so we need to add them explictly into the proxypass.conf file here.
+
+So the changes needed toi be made are as as follows
+
+ProxyPass /manager http://10.0.0.52:8080/manager
+ProxyPassReverse /manager http://10.0.0.52:8080/manager
+
+again restart the httpd server ==> sudo service httpd restart
+
+It would ask for the username and the password here ==> so here we get it as in the tomcat-users.xml file
+
+username= admin
+password = admin
+
+Same for the Hostmanager also 
+
+ProxyPass /host-manager http://10.0.0.52:8080/host-manager
+ProxyPassReverse /host-manager http://10.0.0.52:8080/host-manager
+
+Giving the forbidden error we need to resolve it by adding the admin-gui  present in the roles of the tomcat-users.xml in the application server only. 
+
+cd /opt/apache-tomcat-9.0.79
+cd conf
+vi tomcat-users.xml
+
+make a change in the line below just removing the starting quote of admin-gui
+
+<user username="admin" password="admin" roles="manager-
+gui,manager-script,manager-jmx,manager-status,admin-gui"/>
+
+
+
+-------------------------------------------------
+
+But for automating it it will surely cause lot of time to pass the Private Ip adress of Application server and IP will be changing constantly in it after each rerun of terraform code. [In the Proxypass.conf]
+
+There may be some other reason also as it has the auto-scaling group here so IP can also change due to that; so this must be automated in the 1st case
+
+So for that what we could add is to add the loadbalancer in between the webserver and appserver [task to do]
+
+But we can manage it via the Ansible alos here.
+
+For Day 25 we will be considering the Integration test on Github Actions [packer and terraform] using the Terratest
 ######################################## END Day 24 #########################################
