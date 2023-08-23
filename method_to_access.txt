@@ -4376,3 +4376,22 @@ But we can manage it via the Ansible alos here.
 
 For Day 25 we will be considering the Integration test on Github Actions [packer and terraform] using the Terratest
 ######################################## END Day 24 #########################################
+
+
+######################################## Day 25 ############################################
+What we need to do is 
+
+As we have installed our Tomcat on the Applciation Server ==> For that we need the java ==> So we need to package it using a java build tool (gradle/ant/maven)
+
+We will use maven for this
+After it builds an artifact then we will store that artifact in the AWS S3 bucket [To maintain the versioning]
+
+
+and then the artifact stored in the s3 bucket will be deployed to the tomcat server 
+
+-------------------------------
+
+We will create another workflow named the provison.yml and 
+
+WE firstly need to fork the java app from the repo below and add it our github account
+######################################## END Day 25 #########################################

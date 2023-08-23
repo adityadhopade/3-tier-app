@@ -1,0 +1,26 @@
+name: packgae the resources for three tier application configuration
+on: 
+  workflow_dispatch: 
+
+jobs: 
+  package:
+    name: package
+    runs-on: ubuntu-latest
+    
+    steps:
+      #we will cehckout our repo
+    - name: Checkout
+      uses: actions/checkout@master #checkout the master branch
+      with:
+        repository: adityadhopade/java-db-Login #which repository we want to checkout
+      
+      #setup java 8 for maven [to build the application; java 8 required by the forked repo taht we have added]
+    - name: Setup JDK 8
+      # search github actions to setup java application ==> use the setup-java
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin' #see other supported disribution options also
+        java-versions: '8' # as we need java 8 here
+      # we need to package the java app  
+    - name: build the java app package
+      run: mvn clean package 
